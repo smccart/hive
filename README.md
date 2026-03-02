@@ -1,8 +1,8 @@
-# Hive
+# HiveAgents
 
 A web-based terminal dashboard for managing multiple [Claude Code](https://claude.ai/code) agents in a monorepo.
 
-Drop Hive into any monorepo, define your agents, and get a real-time web UI at `localhost:4199` — xterm.js terminals, status indicators, session persistence, and model switching.
+Drop HiveAgents into any monorepo, define your agents, and get a real-time web UI at `localhost:4199` — xterm.js terminals, status indicators, session persistence, and model switching.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ export default {
 Run:
 ```bash
 npm run hive
-# → Hive running at http://localhost:4199
+# → HiveAgents running at http://localhost:4199
 ```
 
 ## Docs

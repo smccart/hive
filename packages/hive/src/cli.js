@@ -58,7 +58,7 @@ function autoDiscover() {
     agents.push({ name: 'main', dir: '.', label: 'Main', color: COLOR_PALETTE[0] })
   }
 
-  console.log(`\n  Hive: auto-discovered ${agents.length} agent(s) from apps/ and packages/`)
+  console.log(`\n  HiveAgents: auto-discovered ${agents.length} agent(s) from apps/ and packages/`)
   console.log('  Create hive.config.js to customize.\n')
   return { agents }
 }

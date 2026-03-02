@@ -1,11 +1,11 @@
 ---
 title: Configuration
-description: Customize Hive with hive.config.js.
+description: Customize HiveAgents with hive.config.js.
 ---
 
 # Configuration
 
-Hive is zero-config by default: it auto-discovers all directories under `apps/` and `packages/` in your project root. For most monorepos, that's enough to get started.
+HiveAgents is zero-config by default: it auto-discovers all directories under `apps/` and `packages/` in your project root. For most monorepos, that's enough to get started.
 
 When you want control over which agents appear, their display names, port links, and colors, create a `hive.config.js` in your monorepo root.
 
@@ -47,7 +47,7 @@ export default {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `port` | `number` | `4199` | Port for the Hive web server |
+| `port` | `number` | `4199` | Port for the HiveAgents web server |
 | `defaultModel` | `string` | `'claude-opus-4-6'` | Claude model to use when spawning agents |
 | `agents` | `Agent[]` | auto-discovered | List of agent configurations |
 
@@ -63,7 +63,7 @@ export default {
 
 ## Auto-discovery
 
-If no `hive.config.js` is found, Hive scans:
+If no `hive.config.js` is found, HiveAgents scans:
 - `./apps/*/` — all subdirectories of `apps/`
 - `./packages/*/` — all subdirectories of `packages/`
 
@@ -81,4 +81,4 @@ Each agent's buffer is capped at 50 KB (rolling — oldest output is trimmed fir
 
 ## Environment
 
-Hive resolves Claude's path and your login-shell `PATH` automatically, so tools like `nvm`, `fnm`, and `mise` work as expected inside the spawned agent processes.
+HiveAgents resolves Claude's path and your login-shell `PATH` automatically, so tools like `nvm`, `fnm`, and `mise` work as expected inside the spawned agent processes.

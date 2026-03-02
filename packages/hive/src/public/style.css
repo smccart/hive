@@ -8,6 +8,14 @@
   --text:       #e4e4e7;
   --muted:      #52525b;
   --hover:      #1c1c1c;
+
+  --green:      #4ade80;
+  --blue:       #60a5fa;
+  --purple:     #c084fc;
+  --amber:      #fbbf24;
+  --red:        #f87171;
+  --cyan:       #38bdf8;
+  --pink:       #f472b6;
 }
 
 html, body {
@@ -21,7 +29,90 @@ html, body {
 
 #app {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+}
+
+/* ── Repo tabs bar ── */
+
+#repo-tabs {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  background: #0d0d0d;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.repo-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 12px;
+  border-radius: 5px 5px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-bottom: none;
+  transition: color 0.1s, background 0.1s;
+  user-select: none;
+}
+
+.repo-tab:hover { color: var(--text); background: var(--hover); }
+
+.repo-tab.active {
+  color: var(--text);
+  background: var(--sidebar-bg);
+  border-color: var(--border);
+}
+
+.repo-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 3px;
+  padding: 0;
+  transition: color 0.1s, opacity 0.1s;
+}
+
+.repo-tab:hover .repo-tab-close,
+.repo-tab.active .repo-tab-close { opacity: 1; }
+.repo-tab-close:hover { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+
+.repo-tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+}
+
+.repo-tab-add:hover { color: var(--text); background: var(--hover); }
+
+#app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── Sidebar ── */
@@ -147,7 +238,7 @@ html, body {
   transition: background 0.2s;
 }
 
-.agent-status.running { background: #4ade80; }
+.agent-status.running { background: var(--green); }
 
 #sidebar-footer {
   padding: 10px 12px 12px;
@@ -203,8 +294,8 @@ html, body {
 }
 
 .footer-btn:hover { background: var(--hover); border-color: #2e2e2e; }
-.footer-btn--danger { color: #f87171; }
-.footer-btn--danger:hover { border-color: #f87171; background: color-mix(in srgb, #f87171 8%, transparent); }
+.footer-btn--danger { color: var(--red); }
+.footer-btn--danger:hover { border-color: var(--red); background: color-mix(in srgb, var(--red) 8%, transparent); }
 
 /* ── Main area ── */
 
@@ -302,8 +393,8 @@ html, body {
 }
 
 .action-btn:hover { background: var(--hover); }
-.action-btn--start:hover { border-color: #4ade80; color: #4ade80; }
-.action-btn--stop:hover  { border-color: #f87171; color: #f87171; }
+.action-btn--start:hover { border-color: var(--green); color: var(--green); }
+.action-btn--stop:hover  { border-color: var(--red);   color: var(--red); }
 
 /* ── Terminal container ── */
 

@@ -14,13 +14,45 @@ const TERM_THEME = {
   white:    '#e4e4e7', brightWhite:   '#f4f4f5',
 }
 
-// State — populated from /api/agents (fully dynamic, no hardcoded names)
-let agentOrder = []       // ordered list of agent names from server
-let agents = {}           // { name: { label, port, color, running, active } }
-let activeAgent = null
-const terminals = {}
-const agentStatus = {}
-const agentActivity = {}
+// ── Multi-repo state ──────────────────────────────────────────────────────────
+
+// { [port]: { port, label, baseUrl, wsBase, agentOrder, agents, agentStatus,
+//             agentActivity, agentWasActive, terminals, activeAgent, model, models } }
+const repoState = {}
+
+let repoList = []     // ordered list of ports, persisted to localStorage
+let activeRepo = null // currently shown port (number)
+
+const LS_KEY = 'hive_repos'
+
+function saveRepoList() {
+  localStorage.setItem(LS_KEY, JSON.stringify(repoList))
+}
+
+function loadRepoList() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]') } catch { return [] }
+}
+
+// ── Notifications ──
+
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission()
+  }
+}
+
+function notify(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  const n = new Notification(title, { body })
+  n.onclick = () => { window.focus(); n.close() }
+}
+
+function maybeNotify(port, name, title, body) {
+  const repo = repoState[port]
+  if (document.hidden || port !== activeRepo || name !== repo?.activeAgent) {
+    notify(title, body)
+  }
+}
 
 // ── DOM refs ──
 const agentListEl    = document.getElementById('agent-list')
@@ -34,26 +66,47 @@ const btnStop        = document.getElementById('btn-stop')
 const btnStartAll    = document.getElementById('btn-start-all')
 const btnStopAll     = document.getElementById('btn-stop-all')
 const modelSelect    = document.getElementById('model-select')
+const repoTabsEl     = document.getElementById('repo-tabs')
 
-// ── Init ──
+// ── Init ──────────────────────────────────────────────────────────────────────
 
 async function init() {
-  const [agentData, modelData] = await Promise.all([
-    fetch('/api/agents').then(r => r.json()),
-    fetch('/api/model').then(r => r.json()),
+  requestNotificationPermission()
+
+  const primaryPort = parseInt(location.port || '80', 10)
+
+  // Merge: always include primary port first, then any saved extras
+  const saved = loadRepoList().filter(p => p !== primaryPort)
+  repoList = [primaryPort, ...saved]
+
+  // Init all repos in parallel — skip ones we can't reach
+  await Promise.all(repoList.map(p => initRepo(p).catch(() => null)))
+
+  // Remove ports that failed to load (server not running)
+  repoList = repoList.filter(p => repoState[p])
+  saveRepoList()
+
+  renderRepoTabs()
+  if (repoList.length > 0) await selectRepo(repoList[0])
+}
+
+// ── Repo management ───────────────────────────────────────────────────────────
+
+async function initRepo(port) {
+  const base = `http://localhost:${port}`
+  const wsBase = `ws://localhost:${port}`
+
+  const [infoData, agentData, modelData] = await Promise.all([
+    fetch(`${base}/api/info`).then(r => r.json()),
+    fetch(`${base}/api/agents`).then(r => r.json()),
+    fetch(`${base}/api/model`).then(r => r.json()),
   ])
 
-  // Populate model selector
-  for (const m of modelData.models) {
-    const opt = document.createElement('option')
-    opt.value = m.id
-    opt.textContent = m.label
-    if (m.id === modelData.model) opt.selected = true
-    modelSelect.appendChild(opt)
-  }
-
-  // Use server-provided order
-  agentOrder = agentData.order ?? Object.keys(agentData.agents)
+  const agentOrder = agentData.order ?? Object.keys(agentData.agents)
+  const agents = {}
+  const agentStatus = {}
+  const agentActivity = {}
+  const agentWasActive = {}
 
   for (const name of agentOrder) {
     const a = agentData.agents[name]
@@ -61,26 +114,185 @@ async function init() {
     agents[name] = a
     agentStatus[name] = a.running
     agentActivity[name] = a.active ?? false
+    agentWasActive[name] = false
   }
 
+  repoState[port] = {
+    port,
+    label: infoData.label ?? `localhost:${port}`,
+    baseUrl: base,
+    wsBase,
+    agentOrder,
+    agents,
+    agentStatus,
+    agentActivity,
+    agentWasActive,
+    terminals: {},
+    activeAgent: null,
+    model: modelData.model,
+    models: modelData.models,
+  }
+}
+
+async function addRepo() {
+  const input = window.prompt('Port of running Hive instance:')
+  if (!input) return
+  const port = parseInt(input.trim(), 10)
+  if (!port || isNaN(port)) return window.alert('Invalid port number.')
+  if (repoList.includes(port)) {
+    // Already added — just switch to it
+    return selectRepo(port)
+  }
+
+  try {
+    await initRepo(port)
+  } catch {
+    return window.alert(`Could not connect to Hive on port ${port}.\nMake sure it's running.`)
+  }
+
+  repoList.push(port)
+  saveRepoList()
+  renderRepoTabs()
+  selectRepo(port)
+}
+
+function removeRepo(port) {
+  // Clean up terminals
+  const repo = repoState[port]
+  if (repo) {
+    for (const name of Object.keys(repo.terminals)) {
+      const t = repo.terminals[name]
+      t.resizeObserver.disconnect()
+      t.ws.current?.close()
+      t.div.remove()
+    }
+    delete repoState[port]
+  }
+
+  repoList = repoList.filter(p => p !== port)
+  saveRepoList()
+  renderRepoTabs()
+
+  if (activeRepo === port) {
+    activeRepo = null
+    if (repoList.length > 0) {
+      selectRepo(repoList[0])
+    } else {
+      agentListEl.innerHTML = ''
+      headerName.textContent = 'No repos'
+    }
+  }
+}
+
+// ── Repo tabs UI ──────────────────────────────────────────────────────────────
+
+function renderRepoTabs() {
+  repoTabsEl.innerHTML = ''
+
+  for (const port of repoList) {
+    const repo = repoState[port]
+    if (!repo) continue
+
+    const tab = document.createElement('div')
+    tab.className = 'repo-tab' + (port === activeRepo ? ' active' : '')
+    tab.dataset.port = port
+
+    const labelSpan = document.createElement('span')
+    labelSpan.textContent = repo.label
+
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'repo-tab-close'
+    closeBtn.title = 'Remove repo'
+    closeBtn.textContent = '×'
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      removeRepo(port)
+    })
+
+    tab.appendChild(labelSpan)
+    tab.appendChild(closeBtn)
+    tab.addEventListener('click', () => selectRepo(port))
+    repoTabsEl.appendChild(tab)
+  }
+
+  // '+' button
+  const addBtn = document.createElement('button')
+  addBtn.className = 'repo-tab-add'
+  addBtn.title = 'Add another Hive repo'
+  addBtn.textContent = '+'
+  addBtn.addEventListener('click', addRepo)
+  repoTabsEl.appendChild(addBtn)
+}
+
+// ── Select repo ───────────────────────────────────────────────────────────────
+
+async function selectRepo(port) {
+  const repo = repoState[port]
+  if (!repo) return
+
+  // Deactivate all terminals from old repo
+  if (activeRepo && activeRepo !== port) {
+    const old = repoState[activeRepo]
+    if (old?.activeAgent && old.terminals[old.activeAgent]) {
+      old.terminals[old.activeAgent].div.classList.remove('active')
+    }
+  }
+
+  activeRepo = port
+
+  // Update tab highlights
+  repoTabsEl.querySelectorAll('.repo-tab').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.port, 10) === port)
+  })
+
+  // Sync model selector to this repo's model
+  syncModelSelector(repo)
+
+  // Re-render sidebar agents for this repo
   renderSidebar()
-  if (agentOrder.length > 0) selectAgent(agentOrder[0])
+
+  // Select agent: restore previous or pick first
+  const agentToSelect = repo.activeAgent ?? repo.agentOrder[0]
+  if (agentToSelect) {
+    selectAgent(agentToSelect)
+  } else {
+    headerName.textContent = 'No agents'
+  }
+}
+
+// ── Model selector ────────────────────────────────────────────────────────────
+
+function syncModelSelector(repo) {
+  modelSelect.innerHTML = ''
+  for (const m of (repo.models ?? [])) {
+    const opt = document.createElement('option')
+    opt.value = m.id
+    opt.textContent = m.label
+    if (m.id === repo.model) opt.selected = true
+    modelSelect.appendChild(opt)
+  }
 }
 
 modelSelect.addEventListener('change', () => {
-  fetch('/api/model', {
+  const repo = repoState[activeRepo]
+  if (!repo) return
+  repo.model = modelSelect.value
+  fetch(`${repo.baseUrl}/api/model`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: modelSelect.value }),
   })
 })
 
-// ── Sidebar ──
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 
 function renderSidebar() {
   agentListEl.innerHTML = ''
-  for (const name of agentOrder) {
-    const agent = agents[name]
+  const repo = repoState[activeRepo]
+  if (!repo) return
+
+  for (const name of repo.agentOrder) {
+    const agent = repo.agents[name]
     if (!agent) continue
 
     const item = document.createElement('div')
@@ -89,13 +301,13 @@ function renderSidebar() {
     item.style.setProperty('--agent-color', agent.color)
 
     item.innerHTML = `
-      <span class="agent-color-dot ${agentStatus[name] ? 'running' : ''}"
+      <span class="agent-color-dot ${repo.agentStatus[name] ? 'running' : ''}"
             style="background:${agent.color}"></span>
       <span class="agent-info">
         <span class="agent-label">${agent.label}</span>
         <span class="agent-meta">${agent.port ? `:${agent.port}` : 'agent'}</span>
       </span>
-      <span class="agent-status ${agentStatus[name] ? 'running' : ''}"></span>
+      <span class="agent-status ${repo.agentStatus[name] ? 'running' : ''}"></span>
     `
 
     item.addEventListener('click', () => selectAgent(name))
@@ -103,11 +315,13 @@ function renderSidebar() {
   }
 }
 
-function updateSidebarItem(name) {
+function updateSidebarItem(port, name) {
+  if (port !== activeRepo) return
+  const repo = repoState[port]
   const item = agentListEl.querySelector(`[data-name="${name}"]`)
-  if (!item) return
-  const running = agentStatus[name]
-  const active  = agentActivity[name]
+  if (!item || !repo) return
+  const running = repo.agentStatus[name]
+  const active  = repo.agentActivity[name]
   const dot    = item.querySelector('.agent-color-dot')
   const status = item.querySelector('.agent-status')
   if (dot) {
@@ -117,24 +331,27 @@ function updateSidebarItem(name) {
   if (status) status.classList.toggle('running', running)
 }
 
-// ── Select / switch agent ──
+// ── Select / switch agent ─────────────────────────────────────────────────────
 
 function selectAgent(name) {
-  if (!agents[name]) return
+  const repo = repoState[activeRepo]
+  if (!repo || !repo.agents[name]) return
 
-  if (activeAgent && terminals[activeAgent]) {
-    terminals[activeAgent].div.classList.remove('active')
+  // Deactivate currently active terminal for this repo
+  if (repo.activeAgent && repo.terminals[repo.activeAgent]) {
+    repo.terminals[repo.activeAgent].div.classList.remove('active')
   }
+
   agentListEl.querySelectorAll('.agent-item').forEach(el => {
     el.classList.toggle('active', el.dataset.name === name)
   })
 
-  activeAgent = name
-  const agent = agents[name]
+  repo.activeAgent = name
+  const agent = repo.agents[name]
 
   headerColorBar.style.background = agent.color
   headerDot.style.background = agent.color
-  headerDot.classList.toggle('thinking', agentActivity[name] ?? false)
+  headerDot.classList.toggle('thinking', repo.agentActivity[name] ?? false)
   headerName.textContent = agent.label
 
   if (agent.port) {
@@ -151,21 +368,27 @@ function selectAgent(name) {
 
   updateHeaderButtons()
 
-  if (!terminals[name]) createTerminal(name)
-  terminals[name].div.classList.add('active')
+  if (!repo.terminals[name]) createTerminal(activeRepo, name)
+  repo.terminals[name].div.classList.add('active')
 
   requestAnimationFrame(() => {
-    const savedY = terminals[name].term.buffer.active.viewportY
-    terminals[name].fitAddon.fit()
-    terminals[name].term.scrollToLine(savedY)
+    const t = repo.terminals[name]
+    if (!t) return
+    const savedY = t.term.buffer.active.viewportY
+    t.fitAddon.fit()
+    t.term.scrollToLine(savedY)
   })
 }
 
-// ── Terminal creation ──
+// ── Terminal creation ─────────────────────────────────────────────────────────
 
-function createTerminal(name) {
+function createTerminal(port, name) {
+  const repo = repoState[port]
+  if (!repo) return
+
   const div = document.createElement('div')
   div.className = 'terminal-instance'
+  div.dataset.repo = port
   termContainer.appendChild(div)
 
   const term = new Terminal({
@@ -207,30 +430,46 @@ function createTerminal(name) {
   })
   resizeObserver.observe(termContainer)
 
-  terminals[name] = { term, fitAddon, div, ws: wsRef, resizeObserver }
-  connectWS(name, term, wsRef)
+  repo.terminals[name] = { term, fitAddon, div, ws: wsRef, resizeObserver }
+  connectWS(port, name, term, wsRef)
 }
 
-// ── WebSocket ──
+// ── WebSocket ─────────────────────────────────────────────────────────────────
 
-function connectWS(name, term, wsRef, skipBuffer = false) {
-  const wsUrl = `ws://${location.host}/ws?agent=${name}&skipBuffer=${skipBuffer}`
+function connectWS(port, name, term, wsRef, skipBuffer = false) {
+  const repo = repoState[port]
+  if (!repo) return
+
+  const wsUrl = `${repo.wsBase}/ws?agent=${name}&skipBuffer=${skipBuffer}`
   const ws = new WebSocket(wsUrl)
   wsRef.current = ws
 
   ws.addEventListener('message', (e) => {
+    const repo = repoState[port]
+    if (!repo) return
     try {
       const msg = JSON.parse(e.data)
       if (msg.type === 'output') {
         term.write(msg.data)
       } else if (msg.type === 'status') {
-        agentStatus[name] = msg.running
-        updateSidebarItem(name)
-        if (name === activeAgent) updateHeaderButtons()
+        const wasRunning = repo.agentStatus[name]
+        repo.agentStatus[name] = msg.running
+        updateSidebarItem(port, name)
+        if (port === activeRepo && name === repo.activeAgent) updateHeaderButtons()
+        if (wasRunning && !msg.running) {
+          maybeNotify(port, name, `${repo.agents[name]?.label ?? name} stopped`, 'Agent session ended')
+        }
       } else if (msg.type === 'activity') {
-        agentActivity[name] = msg.active
-        updateSidebarItem(name)
-        if (name === activeAgent) headerDot.classList.toggle('thinking', msg.active)
+        const prev = repo.agentWasActive[name]
+        repo.agentActivity[name] = msg.active
+        repo.agentWasActive[name] = msg.active
+        updateSidebarItem(port, name)
+        if (port === activeRepo && name === repo.activeAgent) {
+          headerDot.classList.toggle('thinking', msg.active)
+        }
+        if (prev && !msg.active && repo.agentStatus[name]) {
+          maybeNotify(port, name, `${repo.agents[name]?.label ?? name} finished`, 'Claude is done responding')
+        }
       }
     } catch { /* ignore */ }
   })
@@ -238,61 +477,73 @@ function connectWS(name, term, wsRef, skipBuffer = false) {
   ws.addEventListener('close', () => {
     term.write('\r\n\x1b[90m[disconnected — reconnecting...]\x1b[0m\r\n')
     setTimeout(() => {
-      if (!terminals[name]) return
-      connectWS(name, term, wsRef, true)
+      const repo = repoState[port]
+      if (!repo || !repo.terminals[name]) return
+      connectWS(port, name, term, wsRef, true)
     }, 3000)
   })
 }
 
-// ── Header buttons ──
+// ── Header buttons ────────────────────────────────────────────────────────────
 
 function updateHeaderButtons() {
-  if (!activeAgent) return
-  const running = agentStatus[activeAgent]
+  const repo = repoState[activeRepo]
+  if (!repo?.activeAgent) return
+  const running = repo.agentStatus[repo.activeAgent]
   btnStart.style.opacity = running ? '0.4' : '1'
   btnStop.style.opacity  = running ? '1'   : '0.4'
 }
 
 btnStart.addEventListener('click', async () => {
-  if (!activeAgent) return
-  await fetch(`/api/agents/${activeAgent}/start`, { method: 'POST' })
-  agentStatus[activeAgent] = true
-  updateSidebarItem(activeAgent)
+  const repo = repoState[activeRepo]
+  if (!repo?.activeAgent) return
+  const name = repo.activeAgent
+  await fetch(`${repo.baseUrl}/api/agents/${name}/start`, { method: 'POST' })
+  repo.agentStatus[name] = true
+  updateSidebarItem(activeRepo, name)
   updateHeaderButtons()
 })
 
 btnStop.addEventListener('click', async () => {
-  if (!activeAgent) return
-  await fetch(`/api/agents/${activeAgent}/stop`, { method: 'POST' })
-  agentStatus[activeAgent] = false
-  updateSidebarItem(activeAgent)
+  const repo = repoState[activeRepo]
+  if (!repo?.activeAgent) return
+  const name = repo.activeAgent
+  await fetch(`${repo.baseUrl}/api/agents/${name}/stop`, { method: 'POST' })
+  repo.agentStatus[name] = false
+  updateSidebarItem(activeRepo, name)
   updateHeaderButtons()
 })
 
 btnStartAll.addEventListener('click', async () => {
-  for (const name of agentOrder) {
-    await fetch(`/api/agents/${name}/start`, { method: 'POST' })
-    agentStatus[name] = true
-    updateSidebarItem(name)
+  const repo = repoState[activeRepo]
+  if (!repo) return
+  for (const name of repo.agentOrder) {
+    await fetch(`${repo.baseUrl}/api/agents/${name}/start`, { method: 'POST' })
+    repo.agentStatus[name] = true
+    updateSidebarItem(activeRepo, name)
   }
   updateHeaderButtons()
 })
 
 btnStopAll.addEventListener('click', async () => {
-  for (const name of agentOrder) {
-    await fetch(`/api/agents/${name}/stop`, { method: 'POST' })
-    agentStatus[name] = false
-    updateSidebarItem(name)
+  const repo = repoState[activeRepo]
+  if (!repo) return
+  for (const name of repo.agentOrder) {
+    await fetch(`${repo.baseUrl}/api/agents/${name}/stop`, { method: 'POST' })
+    repo.agentStatus[name] = false
+    updateSidebarItem(activeRepo, name)
   }
   updateHeaderButtons()
 })
 
-// ── Keyboard shortcuts: Alt+1–9 ──
+// ── Keyboard shortcuts: Alt+1–9 ───────────────────────────────────────────────
 document.addEventListener('keydown', (e) => {
   if (e.altKey && !e.ctrlKey && !e.metaKey) {
+    const repo = repoState[activeRepo]
+    if (!repo) return
     const idx = parseInt(e.key, 10) - 1
-    const name = agentOrder[idx]
-    if (name && agents[name]) {
+    const name = repo.agentOrder[idx]
+    if (name && repo.agents[name]) {
       e.preventDefault()
       selectAgent(name)
     }

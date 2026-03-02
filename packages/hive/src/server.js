@@ -195,8 +195,22 @@ export function startServer(config, repoRoot) {
   // ── Express ─────────────────────────────────────────────────────────────────
 
   const app = express()
+
+  // CORS — allow cross-origin requests from other Hive instances (local dev tool)
+  app.use((_req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    if (_req.method === 'OPTIONS') return res.sendStatus(204)
+    next()
+  })
+
   app.use(express.json())
   app.use(express.static(join(__dirname, 'public')))
+
+  app.get('/api/info', (_req, res) => {
+    res.json({ label: config.label ?? repoRoot.split('/').pop(), port })
+  })
 
   app.get('/api/agents', (_req, res) => {
     const result = {}

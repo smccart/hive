@@ -10,7 +10,7 @@ export default function SiteHeader() {
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-8">
         <Link to="/" className="flex items-center gap-2.5 font-semibold text-white">
           <HiveIcon />
-          Hive
+          HiveAgents
         </Link>
 
         <nav className="flex items-center gap-6">

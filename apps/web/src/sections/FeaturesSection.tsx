@@ -6,24 +6,32 @@ const features = [
     title: 'Multi-agent dashboard',
     description:
       'One xterm.js terminal per agent. Switch between them instantly with keyboard shortcuts (Alt+1–9) or the sidebar. No more tab hunting.',
+    color: 'var(--color-brand)',
+    glow: 'var(--color-brand-glow)',
   },
   {
     icon: RotateCcw,
     title: 'Session persistence',
     description:
-      'Hive buffers terminal output to disk. Restart the server and your agents\' history is right where you left it.',
+      'HiveAgents buffers terminal output to disk. Restart the server and your agents\' history is right where you left it.',
+    color: 'var(--color-blue)',
+    glow: 'var(--color-blue-glow)',
   },
   {
     icon: Zap,
     title: 'Live activity indicators',
     description:
       'Animated status dots show you which agents are running and which are actively processing — so you always know what\'s happening.',
+    color: 'var(--color-amber)',
+    glow: 'var(--color-amber-glow)',
   },
   {
     icon: Settings2,
     title: 'Zero config, fully configurable',
     description:
       'Auto-discovers apps/* and packages/* directories in your monorepo. Drop in a hive.config.js to customize agents, ports, labels, and colors.',
+    color: 'var(--color-purple)',
+    glow: 'var(--color-purple-glow)',
   },
 ]
 
@@ -34,7 +42,7 @@ export default function FeaturesSection() {
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-white mb-4">Everything you need</h2>
           <p className="text-neutral-400 max-w-lg mx-auto">
-            Hive is purpose-built for Claude Code monorepo workflows. Small API surface, zero fluff.
+            HiveAgents is purpose-built for Claude Code monorepo workflows. Small API surface, zero fluff.
           </p>
         </div>
 
@@ -46,7 +54,7 @@ export default function FeaturesSection() {
             >
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-                style={{ background: 'var(--color-brand-glow)', color: 'var(--color-brand)' }}
+                style={{ background: f.glow, color: f.color }}
               >
                 <f.icon size={18} />
               </div>

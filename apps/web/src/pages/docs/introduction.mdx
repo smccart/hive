@@ -5,22 +5,22 @@ description: What Hive is and the problem it solves.
 
 # Introduction
 
-**Hive** is a web-based terminal dashboard for managing multiple [Claude Code](https://claude.ai/code) agents in a monorepo.
+**HiveAgents** is a web-based terminal dashboard for managing multiple [Claude Code](https://claude.ai/code) agents in a monorepo.
 
-When you're running Claude Code agents in several directories at once — one per app, one for infrastructure, one for cross-cutting concerns — you end up flipping between terminal tabs constantly. Hive consolidates them into a single browser tab at `http://localhost:4199`.
+When you're running Claude Code agents in several directories at once — one per app, one for infrastructure, one for cross-cutting concerns — you end up flipping between terminal tabs constantly. HiveAgents consolidates them into a single browser tab at `http://localhost:4199`.
 
 ## What it does
 
 - Spawns Claude Code agents as PTY processes, one per configured directory
 - Streams their output in real time to an [xterm.js](https://xtermjs.org) terminal in the browser
-- Persists session history to disk — restart Hive and pick up where you left off
+- Persists session history to disk — restart HiveAgents and pick up where you left off
 - Shows live status indicators: running, idle, actively processing
 - Lets you switch between agents with keyboard shortcuts (Alt+1–9)
 - Supports model selection (Opus, Sonnet, Haiku) from the UI
 
 ## How it works
 
-Hive is a Node.js server that:
+HiveAgents is a Node.js server that:
 
 1. Reads your `hive.config.js` to know which directories to manage (or auto-discovers `apps/*/` and `packages/*/`)
 2. Spawns a `claude` process in each directory using [node-pty](https://github.com/microsoft/node-pty)
@@ -31,7 +31,7 @@ The browser UI is a vanilla JS + xterm.js single-page app served by the same Exp
 
 ## Who it's for
 
-Hive is for developers who:
+HiveAgents is for developers who:
 
 - Use Claude Code in a pnpm/npm/Turborepo monorepo
 - Run multiple Claude agents simultaneously across different directories
@@ -39,5 +39,5 @@ Hive is for developers who:
 
 ## Next steps
 
-- [Installation](/docs/installation) — add Hive to your project
+- [Installation](/docs/installation) — add HiveAgents to your project
 - [Configuration](/docs/configuration) — customize your agents

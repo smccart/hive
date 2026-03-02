@@ -1,15 +1,15 @@
 ---
-title: Using Hive
+title: Using HiveAgents
 description: Keyboard shortcuts, model switching, tips and tricks.
 ---
 
-# Using Hive
+# Using HiveAgents
 
 ## Starting the dashboard
 
 ```bash
 npm run hive
-# → Hive running at http://localhost:4199
+# → HiveAgents running at http://localhost:4199
 ```
 
 Open [http://localhost:4199](http://localhost:4199) in any browser.
@@ -44,7 +44,7 @@ Use the **Start** and **Stop** buttons in the header to control the active agent
 
 Use **Start All** and **Stop All** in the sidebar footer to control every agent at once.
 
-When you start an agent, Hive spawns a `claude` process in that directory using the selected model.
+When you start an agent, HiveAgents spawns a `claude` process in that directory using the selected model.
 
 ## Model selection
 
@@ -57,7 +57,7 @@ Available models:
 
 ## Session persistence
 
-When you restart Hive, each agent's terminal history is automatically restored from `.hive/{name}.buf`. You'll see the previous session's output immediately on reconnect.
+When you restart HiveAgents, each agent's terminal history is automatically restored from `.hive/{name}.buf`. You'll see the previous session's output immediately on reconnect.
 
 The buffer is capped at 50 KB per agent. Old output is trimmed to stay within the limit.
 
@@ -71,6 +71,6 @@ If the browser loses its WebSocket connection (e.g., you restart the server), it
 
 ## Tips
 
-- Run Hive with `--watch` for auto-restart during development: add `"hive:dev": "node --watch node_modules/.bin/hive"` to your scripts
+- Run HiveAgents with `--watch` for auto-restart during development: add `"hive:dev": "node --watch node_modules/.bin/hive"` to your scripts
 - The `.hive/` directory is safe to delete if you want to clear all session history
 - Agents can be in any directory reachable from your repo root — they don't need to be inside `apps/` or `packages/`

@@ -8,6 +8,9 @@ import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
+  server: {
+    port: 4300,
+  },
   plugins: [
     tailwindcss(),
     mdx({

@@ -4,10 +4,18 @@ import { ArrowRight, Github } from 'lucide-react'
 export default function HeroSection() {
   return (
     <section className="pt-40 pb-24 px-6 text-center relative overflow-hidden">
-      {/* Background glow */}
+      {/* Background glows */}
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-3xl opacity-10 pointer-events-none"
         style={{ background: 'var(--color-brand)' }}
+      />
+      <div
+        className="absolute top-20 right-[10%] w-75 h-62.5 rounded-full blur-3xl opacity-6 pointer-events-none"
+        style={{ background: 'var(--color-purple)' }}
+      />
+      <div
+        className="absolute top-32 left-[8%] w-62.5 h-50 rounded-full blur-3xl opacity-6 pointer-events-none"
+        style={{ background: 'var(--color-blue)' }}
       />
 
       <div className="relative max-w-3xl mx-auto">
@@ -18,11 +26,11 @@ export default function HeroSection() {
 
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white mb-6 leading-[1.1]">
           All your Claude agents.<br />
-          <span style={{ color: 'var(--color-brand)' }}>One tab.</span>
+          <span style={{ background: 'linear-gradient(90deg, var(--color-brand), var(--color-blue))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>One tab.</span>
         </h1>
 
         <p className="text-lg text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Drop Hive into any monorepo. Get a real-time web dashboard for managing multiple{' '}
+          Drop HiveAgents into any monorepo. Get a real-time web dashboard for managing multiple{' '}
           <a href="https://claude.ai/code" target="_blank" rel="noopener noreferrer" className="text-neutral-300 hover:text-white underline underline-offset-2 transition-colors">
             Claude Code
           </a>{' '}
@@ -90,7 +98,7 @@ function TerminalMockup() {
             <path d="M2 17l10 5 10-5"/>
             <path d="M2 12l10 5 10-5"/>
           </svg>
-          <span className="text-xs font-semibold text-neutral-300">Hive</span>
+          <span className="text-xs font-semibold text-neutral-300">HiveAgents</span>
         </div>
         {agents.map((a, i) => (
           <div
