@@ -1,0 +1,40 @@
+{
+  "name": "hive-agents",
+  "version": "0.1.0",
+  "description": "Web-based terminal dashboard for managing Claude Code agents in a monorepo",
+  "type": "module",
+  "bin": {
+    "hive": "./src/cli.js"
+  },
+  "files": [
+    "src/"
+  ],
+  "scripts": {
+    "start": "node src/cli.js",
+    "dev": "node --watch src/cli.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai",
+    "agents",
+    "terminal",
+    "monorepo",
+    "dashboard"
+  ],
+  "author": "Sean McCart",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seanmccart/hive"
+  },
+  "homepage": "https://hive-agents.dev",
+  "dependencies": {
+    "express": "^4.19.0",
+    "node-pty": "^1.0.0",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

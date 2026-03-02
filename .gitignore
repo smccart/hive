@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.turbo/
+.hive/
+*.local
+.env
+.env.*
+!.env.example
+
+# TypeScript build artifacts
+*.tsbuildinfo
+*.d.ts.map

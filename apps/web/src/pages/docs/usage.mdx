@@ -1,0 +1,76 @@
+---
+title: Using Hive
+description: Keyboard shortcuts, model switching, tips and tricks.
+---
+
+# Using Hive
+
+## Starting the dashboard
+
+```bash
+npm run hive
+# → Hive running at http://localhost:4199
+```
+
+Open [http://localhost:4199](http://localhost:4199) in any browser.
+
+## The sidebar
+
+The left sidebar lists all configured agents. Each shows:
+
+- **Color dot** — the agent's assigned color
+  - Solid = stopped
+  - Pulsing ring = running (idle)
+  - Fast pulsing ring = running and actively processing output
+- **Label** — the agent's display name
+- **Port** — the app's dev server port (if configured), or `agent` for directory-only agents
+- **Green dot** (right edge) — running indicator
+
+Click any agent to switch to its terminal.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Alt+1` | Switch to first agent |
+| `Alt+2` | Switch to second agent |
+| `Alt+3` … `Alt+9` | Switch to nth agent |
+
+Shortcuts follow the order defined in `hive.config.js` (or auto-discovery order).
+
+## Starting and stopping agents
+
+Use the **Start** and **Stop** buttons in the header to control the active agent.
+
+Use **Start All** and **Stop All** in the sidebar footer to control every agent at once.
+
+When you start an agent, Hive spawns a `claude` process in that directory using the selected model.
+
+## Model selection
+
+The **Model** dropdown in the sidebar footer selects which Claude model is used when spawning new agents. Changing it only affects agents started after the change — already-running agents are unaffected.
+
+Available models:
+- Opus 4.6 — most capable, best for complex tasks
+- Sonnet 4.6 — balanced capability and speed
+- Haiku 4.5 — fastest, best for lightweight tasks
+
+## Session persistence
+
+When you restart Hive, each agent's terminal history is automatically restored from `.hive/{name}.buf`. You'll see the previous session's output immediately on reconnect.
+
+The buffer is capped at 50 KB per agent. Old output is trimmed to stay within the limit.
+
+## Port links
+
+If an agent has a `port` configured, the header shows a clickable port badge. Clicking it opens `http://localhost:{port}` in a new tab — handy for jumping to an app's dev server.
+
+## Reconnection
+
+If the browser loses its WebSocket connection (e.g., you restart the server), it automatically reconnects every 3 seconds and resumes streaming without replaying the full buffer.
+
+## Tips
+
+- Run Hive with `--watch` for auto-restart during development: add `"hive:dev": "node --watch node_modules/.bin/hive"` to your scripts
+- The `.hive/` directory is safe to delete if you want to clear all session history
+- Agents can be in any directory reachable from your repo root — they don't need to be inside `apps/` or `packages/`

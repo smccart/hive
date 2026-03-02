@@ -1,0 +1,145 @@
+---
+title: API Reference
+description: REST endpoints and WebSocket protocol.
+---
+
+# API Reference
+
+Hive exposes a simple REST API and a WebSocket endpoint. These are useful if you want to integrate Hive into other tools, build custom UIs, or script agent control.
+
+## REST API
+
+All endpoints are served on the same port as the web UI (default `4199`).
+
+### GET /api/agents
+
+Returns the list of configured agents and their current status.
+
+**Response:**
+
+```json
+{
+  "agents": {
+    "web": {
+      "dir": "/absolute/path/to/apps/web",
+      "port": 3000,
+      "label": "Web App",
+      "color": "#4ade80",
+      "running": true,
+      "active": false
+    },
+    "api": { ... }
+  },
+  "order": ["web", "api", "admin"]
+}
+```
+
+`order` contains agent names in the order they should be displayed.
+
+`running` — whether the Claude process is currently alive.
+`active` — whether output has been received in the last 1.5 seconds.
+
+---
+
+### POST /api/agents/:name/start
+
+Starts the agent with the given name. No-op if already running.
+
+```bash
+curl -X POST http://localhost:4199/api/agents/web/start
+```
+
+**Response:** `{ "ok": true }`
+
+---
+
+### POST /api/agents/:name/stop
+
+Stops the agent with the given name. No-op if not running.
+
+```bash
+curl -X POST http://localhost:4199/api/agents/web/stop
+```
+
+**Response:** `{ "ok": true }`
+
+---
+
+### GET /api/model
+
+Returns the current model and list of available models.
+
+**Response:**
+
+```json
+{
+  "model": "claude-opus-4-6",
+  "models": [
+    { "id": "claude-opus-4-6",           "label": "Opus 4.6" },
+    { "id": "claude-sonnet-4-6",         "label": "Sonnet 4.6" },
+    { "id": "claude-haiku-4-5-20251001", "label": "Haiku 4.5" }
+  ]
+}
+```
+
+---
+
+### POST /api/model
+
+Sets the model used for newly spawned agents.
+
+```bash
+curl -X POST http://localhost:4199/api/model \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"claude-sonnet-4-6"}'
+```
+
+**Response:** `{ "ok": true }`
+
+---
+
+## WebSocket
+
+Connect to `/ws?agent=<name>` to stream terminal I/O for a specific agent.
+
+```js
+const ws = new WebSocket('ws://localhost:4199/ws?agent=web')
+```
+
+### Parameters
+
+| Param | Description |
+|-------|-------------|
+| `agent` | Agent name (required) |
+| `skipBuffer` | If `true`, don't replay buffered history on connect |
+
+### Messages from server → client
+
+| Type | Payload | Description |
+|------|---------|-------------|
+| `output` | `{ data: string }` | Terminal output chunk (ANSI escape sequences included) |
+| `status` | `{ running: boolean, exitCode?: number }` | Agent start/stop events |
+| `activity` | `{ active: boolean }` | Output flow changed (true = data arriving, false = idle) |
+
+### Messages from client → server
+
+| Type | Payload | Description |
+|------|---------|-------------|
+| `input` | `{ data: string }` | Keyboard input to send to the PTY |
+| `resize` | `{ cols: number, rows: number }` | Notify the PTY of a terminal size change |
+
+### Example
+
+```js
+const ws = new WebSocket('ws://localhost:4199/ws?agent=web')
+
+ws.onmessage = (e) => {
+  const msg = JSON.parse(e.data)
+  if (msg.type === 'output') {
+    process.stdout.write(msg.data)
+  }
+}
+
+// Send a command
+ws.send(JSON.stringify({ type: 'input', data: 'ls -la\n' }))
+```
