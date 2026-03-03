@@ -27,6 +27,11 @@ let activeProject = null
 let currentModel = ''
 let models = []
 
+// Preview panel state
+let previewOpen = false
+let previewPort = null
+let splitWidth = null
+
 // ── Notifications ────────────────────────────────────────────────────────────
 
 function requestNotificationPermission() {
@@ -90,6 +95,14 @@ const btnRestart         = document.getElementById('btn-restart')
 const btnHelp            = document.getElementById('btn-help')
 const shortcutsModal     = document.getElementById('shortcuts-modal')
 const shortcutsClose     = document.getElementById('shortcuts-close')
+const contentSplit       = document.getElementById('content-split')
+const splitHandle        = document.getElementById('split-handle')
+const previewPanel       = document.getElementById('preview-panel')
+const previewPortTabs    = document.getElementById('preview-port-tabs')
+const previewReload      = document.getElementById('preview-reload')
+const previewIframe      = document.getElementById('preview-iframe')
+const previewEmpty       = document.getElementById('preview-empty')
+const btnPreview         = document.getElementById('btn-preview')
 const btnPermissions     = document.getElementById('btn-permissions')
 const permissionsModal   = document.getElementById('permissions-modal')
 const permissionsClose   = document.getElementById('permissions-close')
@@ -104,6 +117,7 @@ const permSave           = document.getElementById('perm-save')
 
 async function init() {
   requestNotificationPermission()
+  loadPreviewState()
 
   // Load model info
   try {
@@ -130,6 +144,9 @@ async function init() {
   if (projectOrder.length > 0) {
     selectProject(projectOrder[0])
   }
+
+  // Restore preview panel if it was open
+  if (previewOpen) togglePreview(true)
 }
 
 // ── Control WebSocket ────────────────────────────────────────────────────────
@@ -175,7 +192,10 @@ function updateProjects(projectList) {
       existing.waiting = p.waiting
       existing.color = p.color
       updateSidebarItem(p.id)
-      if (p.id === activeProject) updateHeader()
+      if (p.id === activeProject) {
+        updateHeader()
+        if (previewOpen) updatePreviewContent()
+      }
 
       // Notify on state transitions
       if (wasActive && !p.active && existing.running) {
@@ -384,6 +404,7 @@ function selectProject(id) {
 
   updateHeader()
   updateHeaderButtons()
+  updatePreviewContent()
 
   // Create terminal if needed
   if (!p.terminal) createTerminal(id)
@@ -413,8 +434,15 @@ function updateHeader() {
     headerPort.href = `http://localhost:${p.ports[0]}`
     headerPort.classList.add('linkable')
     headerPort.style.display = ''
+    headerPort.onclick = (e) => {
+      e.preventDefault()
+      previewPort = p.ports[0]
+      if (!previewOpen) togglePreview(true)
+      else updatePreviewContent()
+    }
   } else {
     headerPort.style.display = 'none'
+    headerPort.onclick = null
   }
 }
 
@@ -455,7 +483,7 @@ function createTerminal(id) {
   }
 
   term.attachCustomKeyEventHandler((e) => {
-    if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'k')) return false
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'k' || e.key === 'p')) return false
     return true
   })
 
@@ -794,6 +822,140 @@ permissionsModal.addEventListener('click', (e) => {
   if (e.target === permissionsModal) closePermissionsModal()
 })
 
+// ── Preview panel ────────────────────────────────────────────────────────────
+
+function loadPreviewState() {
+  try {
+    const raw = localStorage.getItem('hive:preview')
+    if (!raw) return
+    const state = JSON.parse(raw)
+    previewOpen = !!state.open
+    splitWidth = state.splitWidth ?? null
+  } catch { /* ignore */ }
+}
+
+function savePreviewState() {
+  try {
+    localStorage.setItem('hive:preview', JSON.stringify({
+      open: previewOpen,
+      splitWidth,
+    }))
+  } catch { /* ignore */ }
+}
+
+function togglePreview(forceState) {
+  previewOpen = forceState !== undefined ? forceState : !previewOpen
+  btnPreview.classList.toggle('active', previewOpen)
+
+  previewPanel.style.display = previewOpen ? '' : 'none'
+  splitHandle.style.display = previewOpen ? '' : 'none'
+
+  if (previewOpen && splitWidth) {
+    previewPanel.style.width = splitWidth + 'px'
+  } else if (previewOpen) {
+    previewPanel.style.width = '45%'
+  }
+
+  savePreviewState()
+  updatePreviewContent()
+
+  requestAnimationFrame(() => {
+    const p = projects[activeProject]
+    if (p?.terminal) {
+      p.terminal.fitAddon.fit()
+    }
+  })
+}
+
+function updatePreviewContent() {
+  if (!previewOpen) return
+
+  const p = projects[activeProject]
+  if (!p || p.ports.length === 0) {
+    previewIframe.style.display = 'none'
+    previewEmpty.style.display = ''
+    previewPortTabs.innerHTML = ''
+    previewPort = null
+    return
+  }
+
+  if (!previewPort || !p.ports.includes(previewPort)) {
+    previewPort = p.ports[0]
+  }
+
+  renderPortTabs(p.ports)
+
+  previewEmpty.style.display = 'none'
+  previewIframe.style.display = ''
+
+  const targetUrl = `http://localhost:${previewPort}`
+  if (previewIframe.src !== targetUrl) {
+    previewIframe.src = targetUrl
+  }
+}
+
+function renderPortTabs(ports) {
+  previewPortTabs.innerHTML = ''
+  for (const port of ports) {
+    const tab = document.createElement('button')
+    tab.className = 'preview-port-tab' + (port === previewPort ? ' active' : '')
+    tab.textContent = `:${port}`
+    tab.addEventListener('click', () => {
+      previewPort = port
+      updatePreviewContent()
+    })
+    previewPortTabs.appendChild(tab)
+  }
+}
+
+function reloadPreview() {
+  if (previewIframe.src) {
+    previewIframe.src = previewIframe.src
+  }
+}
+
+btnPreview.addEventListener('click', () => togglePreview())
+previewReload.addEventListener('click', reloadPreview)
+
+// ── Split handle drag ────────────────────────────────────────────────────────
+
+;(function initSplitResize() {
+  let startX = 0
+  let startWidth = 0
+
+  function onMouseDown(e) {
+    e.preventDefault()
+    startX = e.clientX
+    startWidth = previewPanel.offsetWidth
+    contentSplit.classList.add('resizing')
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
+  function onMouseMove(e) {
+    const delta = startX - e.clientX
+    const newWidth = Math.max(200, Math.min(startWidth + delta, contentSplit.offsetWidth - 200))
+    previewPanel.style.width = newWidth + 'px'
+  }
+
+  function onMouseUp() {
+    contentSplit.classList.remove('resizing')
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    splitWidth = previewPanel.offsetWidth
+    savePreviewState()
+
+    requestAnimationFrame(() => {
+      const p = projects[activeProject]
+      if (p?.terminal) {
+        p.terminal.fitAddon.fit()
+      }
+    })
+  }
+
+  splitHandle.addEventListener('mousedown', onMouseDown)
+})()
+
 // ── Keyboard shortcuts ───────────────────────────────────────────────────────
 
 document.addEventListener('keydown', (e) => {
@@ -801,6 +963,12 @@ document.addEventListener('keydown', (e) => {
     if (shortcutsModal.style.display !== 'none') { closeShortcutsModal(); return }
     if (permissionsModal.style.display !== 'none') { closePermissionsModal(); return }
     closeSearchBar()
+    return
+  }
+
+  if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+    e.preventDefault()
+    togglePreview()
     return
   }
 

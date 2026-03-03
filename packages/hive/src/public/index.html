@@ -71,10 +71,43 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <button id="btn-help" class="action-btn action-btn--help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+            <button id="btn-preview" class="action-btn action-btn--preview" title="Toggle preview (Cmd/Ctrl+P)" aria-label="Toggle preview">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </button>
           </div>
         </header>
 
-        <div id="terminal-container"></div>
+        <div id="content-split">
+          <div id="terminal-container"></div>
+          <div id="split-handle" style="display:none"></div>
+          <div id="preview-panel" style="display:none">
+            <div id="preview-toolbar">
+              <div id="preview-port-tabs"></div>
+              <button id="preview-reload" class="preview-toolbar-btn" title="Reload preview">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                </svg>
+              </button>
+            </div>
+            <div id="preview-content">
+              <iframe id="preview-iframe" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+              <div id="preview-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <span>No dev server detected</span>
+                <span class="preview-empty-sub">Start a dev server to see a live preview</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -130,6 +163,7 @@
           <div class="shortcut-row"><span class="shortcut-keys"><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>9</kbd></span><span>Switch project</span></div>
           <div class="shortcut-row"><span class="shortcut-keys"><kbd>Cmd/Ctrl</kbd> + <kbd>F</kbd></span><span>Search terminal</span></div>
           <div class="shortcut-row"><span class="shortcut-keys"><kbd>Cmd/Ctrl</kbd> + <kbd>K</kbd></span><span>Clear terminal</span></div>
+          <div class="shortcut-row"><span class="shortcut-keys"><kbd>Cmd/Ctrl</kbd> + <kbd>P</kbd></span><span>Toggle preview panel</span></div>
           <div class="shortcut-row"><span class="shortcut-keys"><kbd>Esc</kbd></span><span>Close modal / search</span></div>
           <div class="shortcut-row"><span class="shortcut-keys"><kbd>?</kbd></span><span>Show this help</span></div>
         </div>

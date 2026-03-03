@@ -20,6 +20,17 @@ const IGNORED_PROCESSES = new Set([
 // Directories that are never project roots
 const IGNORED_CWDS = new Set(['/', '/usr', '/var', '/tmp', '/private', '/System'])
 
+// Paths containing these segments are inside a trash/recycle bin
+const TRASH_SEGMENTS = [
+  '/.Trash/',
+  '/.Trashes/',
+  '/.local/share/Trash/',
+]
+
+function isTrashPath(p) {
+  return TRASH_SEGMENTS.some(seg => p.includes(seg))
+}
+
 /**
  * Create a stable ID from an absolute path.
  */
@@ -36,6 +47,7 @@ export function pathToId(absolutePath) {
  * Returns { root, name } or null.
  */
 export function identifyProject(dir) {
+  if (isTrashPath(dir + '/')) return null
   try {
     if (!statSync(dir).isDirectory()) return null
   } catch { return null }
