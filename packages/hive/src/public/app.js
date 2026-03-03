@@ -103,6 +103,7 @@ document.addEventListener('visibilitychange', () => {
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
+const agentTabsEl    = document.getElementById('agent-tabs')
 const agentListEl    = document.getElementById('agent-list')
 const termContainer  = document.getElementById('terminal-container')
 const headerColorBar = document.getElementById('header-color-bar')
@@ -309,6 +310,7 @@ function updateProjects(projectList) {
   }
 
   renderSidebar()
+  renderTabs()
   updateTabAttention()
 }
 
@@ -333,6 +335,73 @@ modelSelect.addEventListener('change', () => {
     body: JSON.stringify({ model: modelSelect.value }),
   })
 })
+
+// ── Agent tabs ──────────────────────────────────────────────────────────────
+
+function renderTabs() {
+  agentTabsEl.innerHTML = ''
+
+  for (const id of projectOrder) {
+    const p = projects[id]
+    if (!p) continue
+    agentTabsEl.appendChild(buildTab(p))
+  }
+}
+
+function buildTab(p) {
+  const tab = document.createElement('button')
+  tab.className = 'agent-tab'
+  tab.dataset.id = p.id
+  tab.style.setProperty('--tab-color', p.color)
+
+  if (p.id === activeProject) tab.classList.add('active')
+  if (p.running) tab.classList.add('running')
+  if (p.running && p.active) tab.classList.add('thinking')
+  if (p.running && !p.active && p.waiting) tab.classList.add('waiting')
+
+  const dot = document.createElement('span')
+  dot.className = 'agent-tab-dot'
+  dot.style.background = p.color
+
+  const name = document.createElement('span')
+  name.className = 'agent-tab-name'
+  name.textContent = p.name
+
+  const badge = document.createElement('span')
+  badge.className = 'agent-tab-badge'
+  badge.textContent = '?'
+
+  tab.append(dot, name)
+
+  if (p.ports.length > 0) {
+    const port = document.createElement('span')
+    port.className = 'agent-tab-port'
+    port.textContent = p.ports.map(pt => `:${pt}`).join(' ')
+    tab.appendChild(port)
+  }
+
+  tab.appendChild(badge)
+  tab.addEventListener('click', () => selectProject(p.id))
+  return tab
+}
+
+function updateTab(id) {
+  const tab = agentTabsEl.querySelector(`[data-id="${id}"]`)
+  if (!tab) return
+  const p = projects[id]
+  if (!p) return
+
+  tab.classList.toggle('active', p.id === activeProject)
+  tab.classList.toggle('running', p.running)
+  tab.classList.toggle('thinking', p.running && p.active)
+  tab.classList.toggle('waiting', p.running && !p.active && p.waiting)
+}
+
+function updateAllTabsActiveState() {
+  agentTabsEl.querySelectorAll('.agent-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.id === activeProject)
+  })
+}
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -452,6 +521,8 @@ function updateSidebarItem(id) {
   if (status) status.classList.toggle('running', p.running)
 
   if (p.terminal) p.terminal.div.classList.toggle('stopped', !p.running)
+
+  updateTab(id)
 }
 
 // ── Select project ───────────────────────────────────────────────────────────
@@ -471,6 +542,9 @@ function selectProject(id) {
   agentListEl.querySelectorAll('.agent-item').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id)
   })
+
+  // Update tab highlights
+  updateAllTabsActiveState()
 
   updateHeader()
   updateHeaderButtons()
