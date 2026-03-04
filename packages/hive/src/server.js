@@ -106,9 +106,10 @@ export function startServer({ port, pollInterval, scanDirs, dataDir }) {
 
   // Control WebSocket clients (for broadcasting project changes)
   const controlClients = new Set()
+  let detectedPorts = []
 
   function broadcastProjectsChanged() {
-    const msg = JSON.stringify({ type: 'projects:changed', projects: getProjectList() })
+    const msg = JSON.stringify({ type: 'projects:changed', projects: getProjectList(), detectedPorts })
     for (const ws of controlClients) {
       if (ws.readyState === 1) ws.send(msg)
     }
@@ -271,7 +272,8 @@ export function startServer({ port, pollInterval, scanDirs, dataDir }) {
   for (const project of initialProjects) addProject(project)
 
   // Port scan: updates port info on known projects, may discover extras
-  watcher.on('projects:updated', (projectList) => {
+  watcher.on('projects:updated', (projectList, allPorts) => {
+    detectedPorts = allPorts || []
     for (const project of projectList) {
       if (sessions[project.id]) {
         const prev = sessions[project.id].ports
@@ -408,7 +410,7 @@ export function startServer({ port, pollInterval, scanDirs, dataDir }) {
     // Control channel: /ws/control — receives project list updates
     if (path === '/ws/control') {
       controlClients.add(ws)
-      ws.send(JSON.stringify({ type: 'projects:changed', projects: getProjectList() }))
+      ws.send(JSON.stringify({ type: 'projects:changed', projects: getProjectList(), detectedPorts }))
       ws.on('close', () => controlClients.delete(ws))
       return
     }
@@ -449,16 +451,6 @@ export function startServer({ port, pollInterval, scanDirs, dataDir }) {
     ws.on('close', () => {
       session.clients.delete(ws)
     })
-  })
-
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`\n  Error: port ${port} is already in use.`)
-      console.error(`  Try a different port: hive --port ${port + 1}\n`)
-    } else {
-      console.error(`\n  Server error: ${err.message}\n`)
-    }
-    process.exit(1)
   })
 
   server.listen(port, () => {

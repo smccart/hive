@@ -52,13 +52,16 @@ let activeProject = null
 let currentModel = ''
 let models = []
 
+// All detected ports from scanner
+let allDetectedPorts = []
+
 // Preview panel state
 let previewOpen = false
 let previewPort = null
 let splitWidth = null
 
 // Sidebar section state (persisted)
-let collapsedGroups = new Set(JSON.parse(localStorage.getItem('hive:collapsed') || '[]'))
+let collapsedGroups = new Set(JSON.parse(localStorage.getItem('hive:collapsed') || '["__ports__"]'))
 let hiddenProjects = new Set(JSON.parse(localStorage.getItem('hive:hidden') || '[]'))
 function saveCollapsed() { localStorage.setItem('hive:collapsed', JSON.stringify([...collapsedGroups])) }
 function saveHidden() { localStorage.setItem('hive:hidden', JSON.stringify([...hiddenProjects])) }
@@ -109,12 +112,14 @@ document.addEventListener('visibilitychange', () => {
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
+const runningTabsEl  = document.getElementById('running-tabs')
 const agentTabsEl    = document.getElementById('agent-tabs')
 const agentListEl    = document.getElementById('agent-list')
 const termContainer  = document.getElementById('terminal-container')
 const headerColorBar = document.getElementById('header-color-bar')
 const headerDot      = document.getElementById('header-dot')
 const headerName     = document.getElementById('header-name')
+const headerStatus   = document.getElementById('header-status')
 const headerPort     = document.getElementById('header-port')
 const btnStart       = document.getElementById('btn-start')
 const btnStop        = document.getElementById('btn-stop')
@@ -152,6 +157,10 @@ const themeIcon = document.getElementById('theme-icon')
 
 const SUN_ICON = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
 const MOON_ICON = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>'
+
+const LUCIDE_SVG_ATTRS = 'width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+const EYE_ICON = `<svg ${LUCIDE_SVG_ATTRS}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
+const EYE_OFF_ICON = `<svg ${LUCIDE_SVG_ATTRS}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
 
 function syncThemeIcon() {
   const theme = getCurrentTheme()
@@ -237,6 +246,7 @@ function connectControl() {
     try {
       const msg = JSON.parse(e.data)
       if (msg.type === 'projects:changed') {
+        allDetectedPorts = msg.detectedPorts || []
         updateProjects(msg.projects)
       }
     } catch { /* ignore */ }
@@ -344,14 +354,38 @@ modelSelect.addEventListener('change', () => {
 
 // ── Agent tabs ──────────────────────────────────────────────────────────────
 
-function renderTabs() {
+function renderRunningTabs() {
+  runningTabsEl.innerHTML = ''
+  for (const id of projectOrder) {
+    const p = projects[id]
+    if (!p || !p.running) continue
+    runningTabsEl.appendChild(buildTab(p))
+  }
+}
+
+function renderGroupTabs() {
   agentTabsEl.innerHTML = ''
+  const active = projects[activeProject]
+  if (!active) return
+
+  // Only show group tabs when inside a monorepo
+  const groupId = active.groupId || null
+  if (!groupId) return
 
   for (const id of projectOrder) {
     const p = projects[id]
     if (!p) continue
-    agentTabsEl.appendChild(buildTab(p))
+    const pGroup = p.groupId || null
+    if (pGroup !== groupId) continue
+    const tab = buildTab(p)
+    if (!p.running) tab.classList.add('dimmed')
+    agentTabsEl.appendChild(tab)
   }
+}
+
+function renderTabs() {
+  renderRunningTabs()
+  renderGroupTabs()
 }
 
 function buildTab(p) {
@@ -392,21 +426,26 @@ function buildTab(p) {
 }
 
 function updateTab(id) {
-  const tab = agentTabsEl.querySelector(`[data-id="${id}"]`)
-  if (!tab) return
   const p = projects[id]
   if (!p) return
 
-  tab.classList.toggle('active', p.id === activeProject)
-  tab.classList.toggle('running', p.running)
-  tab.classList.toggle('thinking', p.running && p.active)
-  tab.classList.toggle('waiting', p.running && !p.active && p.waiting)
+  for (const container of [runningTabsEl, agentTabsEl]) {
+    const tab = container.querySelector(`[data-id="${id}"]`)
+    if (!tab) continue
+    tab.classList.toggle('active', p.id === activeProject)
+    tab.classList.toggle('running', p.running)
+    tab.classList.toggle('thinking', p.running && p.active)
+    tab.classList.toggle('waiting', p.running && !p.active && p.waiting)
+    tab.classList.toggle('dimmed', !p.running && container === agentTabsEl)
+  }
 }
 
 function updateAllTabsActiveState() {
-  agentTabsEl.querySelectorAll('.agent-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.id === activeProject)
-  })
+  for (const container of [runningTabsEl, agentTabsEl]) {
+    container.querySelectorAll('.agent-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.id === activeProject)
+    })
+  }
 }
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
@@ -491,6 +530,57 @@ function renderSidebar() {
       agentListEl.appendChild(buildProjectItem(p, false, true))
     }
   }
+
+  // Render running ports section (collapsed by default, at bottom)
+  if (allDetectedPorts.length > 0) {
+    const portsCollapsed = collapsedGroups.has('__ports__')
+
+    const portsHeader = document.createElement('div')
+    portsHeader.className = 'sidebar-section-label ports-section-header'
+    if (portsCollapsed) portsHeader.classList.add('collapsed')
+
+    const chevron = document.createElement('span')
+    chevron.className = 'group-chevron'
+    chevron.innerHTML = '&#x25BE;'
+
+    const labelText = document.createElement('span')
+    labelText.textContent = `Ports (${allDetectedPorts.length})`
+
+    portsHeader.append(chevron, labelText)
+    portsHeader.addEventListener('click', () => {
+      if (collapsedGroups.has('__ports__')) {
+        collapsedGroups.delete('__ports__')
+      } else {
+        collapsedGroups.add('__ports__')
+      }
+      saveCollapsed()
+      renderSidebar()
+    })
+    agentListEl.appendChild(portsHeader)
+
+    if (!portsCollapsed) {
+      for (const { port, process: proc } of allDetectedPorts) {
+        const item = document.createElement('div')
+        item.className = 'port-item'
+        item.addEventListener('click', () => {
+          previewOpen = true
+          previewPort = port
+          updatePreviewContent()
+        })
+
+        const portNum = document.createElement('span')
+        portNum.className = 'port-number'
+        portNum.textContent = `:${port}`
+
+        const procName = document.createElement('span')
+        procName.className = 'port-process'
+        procName.textContent = proc
+
+        item.append(portNum, procName)
+        agentListEl.appendChild(item)
+      }
+    }
+  }
 }
 
 function buildGroupHeader(parent, children, isHidden) {
@@ -502,11 +592,15 @@ function buildGroupHeader(parent, children, isHidden) {
     header.dataset.id = parent.id
     header.style.setProperty('--agent-color', parent.color)
 
-    const chevron = document.createElement('span')
-    chevron.className = 'group-chevron'
-    chevron.innerHTML = '&#x25BE;'
-    chevron.addEventListener('click', (e) => {
-      e.stopPropagation()
+    const name = document.createElement('span')
+    name.className = 'group-name'
+    name.textContent = parent.name
+
+    const eye = buildVisibilityToggle(parent.id)
+
+    header.append(name, eye)
+    header.addEventListener('click', () => {
+      selectProject(parent.id)
       if (collapsedGroups.has(parent.id)) {
         collapsedGroups.delete(parent.id)
       } else {
@@ -515,24 +609,15 @@ function buildGroupHeader(parent, children, isHidden) {
       saveCollapsed()
       renderSidebar()
     })
-
-    const name = document.createElement('span')
-    name.className = 'group-name'
-    name.textContent = parent.name
-
-    const eye = buildVisibilityToggle(parent.id, true)
-
-    header.append(chevron, name, eye)
-    header.addEventListener('click', () => selectProject(parent.id))
   }
   return header
 }
 
-function buildVisibilityToggle(id, isGroup) {
+function buildVisibilityToggle(id) {
   const eye = document.createElement('span')
   eye.className = 'visibility-toggle'
   const isHidden = hiddenProjects.has(id)
-  eye.innerHTML = isHidden ? '&#x2298;' : '&#x25C9;'
+  eye.innerHTML = isHidden ? EYE_OFF_ICON : EYE_ICON
   eye.title = isHidden ? 'Show' : 'Hide'
   eye.addEventListener('click', (e) => {
     e.stopPropagation()
@@ -574,7 +659,7 @@ function buildProjectItem(p, isChild, isHidden) {
   status.className = 'agent-status' + (p.running ? ' running' : '')
 
   if (!isChild) {
-    const eye = buildVisibilityToggle(p.id, false)
+    const eye = buildVisibilityToggle(p.id)
     item.append(dot, info, status, eye)
   } else {
     item.append(dot, info, status)
@@ -647,10 +732,11 @@ function updateHeader() {
 
   headerColorBar.style.background = p.color
   headerDot.style.background = p.color
-  headerDot.classList.toggle('thinking', p.active)
-  headerDot.classList.toggle('waiting', !p.active && p.waiting)
+  headerDot.classList.toggle('thinking', p.running && p.active)
+  headerDot.classList.toggle('waiting', p.running && !p.active && p.waiting)
   headerName.textContent = p.name
   document.documentElement.style.setProperty('--active-color', p.color)
+  updateHeaderStatus(p)
 
   if (p.ports.length > 0) {
     headerPort.textContent = p.ports.map(port => `:${port}`).join(' ')
@@ -666,6 +752,23 @@ function updateHeader() {
   } else {
     headerPort.style.display = 'none'
     headerPort.onclick = null
+  }
+}
+
+function updateHeaderStatus(p) {
+  if (!p) { headerStatus.textContent = ''; headerStatus.className = ''; return }
+  if (p.running && p.active) {
+    headerStatus.textContent = 'Thinking...'
+    headerStatus.className = 'header-status thinking'
+  } else if (p.running && p.waiting) {
+    headerStatus.textContent = 'Waiting for input'
+    headerStatus.className = 'header-status waiting'
+  } else if (p.running) {
+    headerStatus.textContent = 'Idle'
+    headerStatus.className = 'header-status idle'
+  } else {
+    headerStatus.textContent = 'Stopped'
+    headerStatus.className = 'header-status stopped'
   }
 }
 
@@ -759,7 +862,7 @@ function connectProjectWS(id, term, wsRef, skipBuffer = false) {
         const wasRunning = p.running
         p.running = msg.running
         updateSidebarItem(id)
-        if (id === activeProject) updateHeaderButtons()
+        if (id === activeProject) { updateHeaderButtons(); updateHeaderStatus(p) }
         if (wasRunning && !msg.running) {
           maybeNotify(id, `${p.name} stopped`, 'Agent session ended')
         }
@@ -772,6 +875,7 @@ function connectProjectWS(id, term, wsRef, skipBuffer = false) {
         if (id === activeProject) {
           headerDot.classList.toggle('thinking', msg.active)
           headerDot.classList.toggle('waiting', !msg.active && (msg.waiting ?? false))
+          updateHeaderStatus(p)
         }
         if (wasActive && !msg.active && p.running) {
           if (msg.waiting) {

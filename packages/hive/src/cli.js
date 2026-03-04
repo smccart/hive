@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
-import { readFileSync, mkdirSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { readFileSync, mkdirSync, existsSync } from 'node:fs'
+import { createServer } from 'node:net'
+import { join, resolve, dirname } from 'node:path'
 import { homedir } from 'node:os'
+import { exec } from 'node:child_process'
 
 // ── CLI flags ───────────────────────────────────────────────────────────────
 
@@ -85,17 +87,80 @@ function printVersion() {
   console.log(getVersion())
 }
 
+// ── Port helpers ──────────────────────────────────────────────────────────────
+
+function isPortFree(p) {
+  return new Promise((resolve) => {
+    const srv = createServer()
+    srv.once('error', () => resolve(false))
+    srv.listen(p, () => srv.close(() => resolve(true)))
+  })
+}
+
+async function isHiveRunning(p) {
+  try {
+    const res = await fetch(`http://localhost:${p}/api/info`)
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+function openBrowser(url) {
+  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
+  exec(`${cmd} ${url}`)
+}
+
+// ── Directory helpers ─────────────────────────────────────────────────────────
+
+/** Walk up from dir to find the nearest .git root. */
+function findRepoRoot(dir) {
+  let current = dir
+  while (current !== '/') {
+    if (existsSync(join(current, '.git'))) return current
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return null
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 const args = parseArgs(process.argv)
 
-const port = args.port ?? 4269
+let port = args.port ?? 4269
 const pollInterval = (args.poll ?? 5) * 1000
-const scanDirs = args.dirs.length > 0 ? args.dirs : [process.cwd()]
+
+// Default scan dir: parent of the repo root (so sibling repos are included)
+const defaultScanDir = dirname(findRepoRoot(process.cwd()) || process.cwd())
+const scanDirs = args.dirs.length > 0 ? args.dirs : [defaultScanDir]
 const dataDir = join(homedir(), '.hive')
 
 // Ensure data directory exists
 mkdirSync(dataDir, { recursive: true })
+
+// Resolve port conflicts before starting the server
+if (!(await isPortFree(port))) {
+  if (await isHiveRunning(port)) {
+    console.log(`\n  Hive is already running at http://localhost:${port}`)
+    console.log(`  Opening in browser...\n`)
+    openBrowser(`http://localhost:${port}`)
+    process.exit(0)
+  }
+
+  // Port taken by something else — find next available
+  const original = port
+  while (!(await isPortFree(++port))) {
+    if (port > original + 20) {
+      console.error(`\n  Error: could not find a free port (tried ${original}–${port})\n`)
+      process.exit(1)
+    }
+  }
+  console.log(`  Port ${original} in use, using ${port}`)
+}
+
+console.log(`  Scanning: ${scanDirs.join(', ')}`)
 
 try {
   const { startServer } = await import('./server.js')

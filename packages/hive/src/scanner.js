@@ -85,6 +85,18 @@ export function findProjectRoot(dir) {
 
 const MONOREPO_DIRS = ['apps', 'packages', 'services', 'libs', 'modules']
 
+// Config/tooling packages that are never real runnable projects
+const IGNORED_PACKAGE_PATTERNS = [
+  'eslint', 'prettier', 'tsconfig', 'typescript',
+  'stylelint', 'commitlint', 'lint',
+  'config', 'configs',
+]
+
+function isConfigPackage(name) {
+  const lower = name.toLowerCase()
+  return IGNORED_PACKAGE_PATTERNS.some(p => lower.includes(p))
+}
+
 /**
  * Scan a project for monorepo workspace children.
  * Returns array of child entries with `group` set to the parent name.
@@ -103,16 +115,15 @@ function scanMonorepoChildren(parentRoot, parentName, parentId) {
       if (entry.startsWith('.') || entry === 'node_modules') continue
       const full = join(subDir, entry)
       const project = identifyProject(full)
-      if (project) {
-        children.push({
-          id: pathToId(project.root),
-          root: project.root,
-          name: project.name,
-          group: parentName,
-          groupId: parentId,
-          ports: [],
-        })
-      }
+      if (!project || isConfigPackage(project.name)) continue
+      children.push({
+        id: pathToId(project.root),
+        root: project.root,
+        name: project.name,
+        group: parentName,
+        groupId: parentId,
+        ports: [],
+      })
     }
   }
 
@@ -319,12 +330,31 @@ export class ProjectWatcher extends EventEmitter {
 
   /** Scan ports and merge into known projects. */
   async scanPorts() {
-    const portMap = await scanPortsForProjects(this.hivePort)
+    const allPorts = await getListeningPorts()
+    const candidates = allPorts.filter(p => {
+      if (p.port < 1024) return false
+      if (p.port === this.hivePort) return false
+      if (IGNORED_PROCESSES.has(p.name)) return false
+      return true
+    })
+
+    // Build project -> ports map
+    const portMap = new Map()
+    await Promise.all(candidates.map(async (entry) => {
+      const cwd = await getCwdForPid(entry.pid)
+      if (!cwd || IGNORED_CWDS.has(cwd)) return
+      const project = findProjectRoot(cwd)
+      if (!project) return
+      if (!portMap.has(project.root)) portMap.set(project.root, new Set())
+      portMap.get(project.root).add(entry.port)
+    }))
 
     let changed = false
 
     for (const [id, project] of this.projects) {
-      const livePorts = portMap.get(project.root) ?? []
+      const livePorts = portMap.has(project.root)
+        ? Array.from(portMap.get(project.root))
+        : []
       const prev = project.ports
 
       const portsChanged =
@@ -338,24 +368,42 @@ export class ProjectWatcher extends EventEmitter {
     }
 
     // Also check for port-only projects not found by dir scan
-    for (const [root, ports] of portMap) {
+    // but only if they fall within one of our scan directories
+    for (const [root, portSet] of portMap) {
       const id = pathToId(root)
       if (!this.projects.has(id)) {
+        const insideScanDir = this.scanDirs.some(dir => root.startsWith(dir + '/') || root === dir)
+        if (!insideScanDir) continue
+
         const project = findProjectRoot(root)
         if (project) {
           this.projects.set(id, {
             id,
             root: project.root,
             name: project.name,
-            ports,
+            ports: Array.from(portSet),
           })
           changed = true
         }
       }
     }
 
-    if (changed) {
-      this.emit('projects:updated', Array.from(this.projects.values()))
+    // Build list of all detected ports for the UI
+    const detectedPorts = candidates.map(c => ({ port: c.port, process: c.name }))
+    // Dedupe by port number
+    const seen = new Set()
+    const uniquePorts = detectedPorts.filter(p => {
+      if (seen.has(p.port)) return false
+      seen.add(p.port)
+      return true
+    }).sort((a, b) => a.port - b.port)
+
+    // Always emit — ports list may change even if project ports don't
+    const prevPorts = JSON.stringify(this._lastDetectedPorts || [])
+    const currPorts = JSON.stringify(uniquePorts)
+    if (changed || prevPorts !== currPorts) {
+      this._lastDetectedPorts = uniquePorts
+      this.emit('projects:updated', Array.from(this.projects.values()), uniquePorts)
     }
   }
 
