@@ -455,7 +455,7 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
 
   server.listen(port, () => {
     const count = Object.keys(sessions).length
-    console.log(`\n  Hive running at http://localhost:${port}`)
+    console.log(`\n  HiveScan running at http://localhost:${port}`)
     console.log(`  ${count} project(s) found, scanning ports every ${pollInterval / 1000}s...\n`)
     watcher.start(pollInterval)
 
@@ -468,7 +468,7 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
   })
 
   function shutdown() {
-    console.log('\n  Shutting down Hive...')
+    console.log('\n  Shutting down HiveScan...')
     watcher.stop()
     for (const session of Object.values(sessions)) {
       if (session.pty) session.pty.kill()

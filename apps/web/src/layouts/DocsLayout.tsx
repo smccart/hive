@@ -13,7 +13,7 @@ const NAV = [
   {
     title: 'Usage',
     links: [
-      { to: '/docs/usage',         label: 'Using Hive' },
+      { to: '/docs/usage',         label: 'Using HiveScan' },
       { to: '/docs/api-reference', label: 'API Reference' },
     ],
   },

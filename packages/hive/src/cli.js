@@ -164,7 +164,7 @@ mkdirSync(dataDir, { recursive: true })
 // Resolve port conflicts before starting the server
 if (!(await isPortFree(port))) {
   if (await isHiveRunning(port)) {
-    console.log(`\n  Hive is already running at http://localhost:${port}`)
+    console.log(`\n  HiveScan is already running at http://localhost:${port}`)
     console.log(`  Opening in browser...\n`)
     openBrowser(`http://localhost:${port}`)
     process.exit(0)

@@ -1,18 +1,18 @@
 ---
-title: Using HiveAgents
+title: Using HiveScan
 description: Keyboard shortcuts, model switching, permissions, and tips.
 ---
 
-# Using HiveAgents
+# Using HiveScan
 
 ## Starting the dashboard
 
 ```bash
-npm run hive
-# → HiveAgents running at http://localhost:4199
+npx hivescan
+# → HiveScan running at http://localhost:4269
 ```
 
-Open [http://localhost:4199](http://localhost:4199) in any browser.
+Open [http://localhost:4269](http://localhost:4269) in any browser.
 
 ## The sidebar
 
@@ -36,7 +36,7 @@ Click any agent to switch to its terminal.
 | `Alt+2` | Switch to second agent |
 | `Alt+3` … `Alt+9` | Switch to nth agent |
 
-Shortcuts follow the order defined in `hive.config.js` (or auto-discovery order).
+Shortcuts follow the auto-discovery order.
 
 ## Starting and stopping agents
 
@@ -44,7 +44,7 @@ Use the **Start** and **Stop** buttons in the header to control the active agent
 
 Use **Start All** and **Stop All** in the sidebar footer to control every agent at once.
 
-When you start an agent, HiveAgents spawns a `claude` process in that directory using the selected model.
+When you start an agent, HiveScan spawns a `claude` process in that directory using the selected model.
 
 ## Model selection
 
@@ -92,7 +92,7 @@ Click **Save** to write changes to `.claude/settings.json`. Changes take effect 
 
 ## Session persistence
 
-When you restart HiveAgents, each agent's terminal history is automatically restored from `.hive/{name}.buf`. You'll see the previous session's output immediately on reconnect.
+When you restart HiveScan, each agent's terminal history is automatically restored from `.hive/{name}.buf`. You'll see the previous session's output immediately on reconnect.
 
 The buffer is capped at 50 KB per agent. Old output is trimmed to stay within the limit.
 
@@ -106,6 +106,5 @@ If the browser loses its WebSocket connection (e.g., you restart the server), it
 
 ## Tips
 
-- Run HiveAgents with `--watch` for auto-restart during development: add `"hive:dev": "node --watch node_modules/.bin/hive"` to your scripts
-- The `.hive/` directory is safe to delete if you want to clear all session history
-- Agents can be in any directory reachable from your repo root — they don't need to be inside `apps/` or `packages/`
+- The `~/.hive/` directory is safe to delete if you want to clear all session history
+- Agents can be in any directory — HiveScan auto-discovers projects from the directories you point it at

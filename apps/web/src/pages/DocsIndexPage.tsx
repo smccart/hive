@@ -2,10 +2,10 @@ import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
 
 const pages = [
-  { to: '/docs/introduction',  title: 'Introduction',  desc: 'What Hive is and how it works.' },
-  { to: '/docs/installation',  title: 'Installation',  desc: 'Add Hive to your monorepo in under a minute.' },
-  { to: '/docs/configuration', title: 'Configuration', desc: 'Customize agents with hive.config.js.' },
-  { to: '/docs/usage',         title: 'Using Hive',    desc: 'Keyboard shortcuts, model switching, and tips.' },
+  { to: '/docs/introduction',  title: 'Introduction',  desc: 'What HiveScan is and how it works.' },
+  { to: '/docs/installation',  title: 'Installation',  desc: 'Install HiveScan in under a minute.' },
+  { to: '/docs/configuration', title: 'Configuration', desc: 'Customize your HiveScan setup.' },
+  { to: '/docs/usage',         title: 'Using HiveScan', desc: 'Keyboard shortcuts, model switching, and tips.' },
   { to: '/docs/api-reference', title: 'API Reference', desc: 'REST endpoints and WebSocket protocol.' },
 ]
 
@@ -13,7 +13,7 @@ export default function DocsIndexPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold text-white mb-2">Documentation</h1>
-      <p className="text-neutral-400 mb-10">Everything you need to get Hive running in your monorepo.</p>
+      <p className="text-neutral-400 mb-10">Everything you need to get HiveScan running.</p>
 
       <div className="grid gap-3">
         {pages.map((p) => (

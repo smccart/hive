@@ -2,20 +2,20 @@ const steps = [
   {
     n: '1',
     title: 'Install',
-    code: 'npm install -D hive-agents',
-    description: 'Add Hive to your monorepo as a dev dependency. Works with npm, pnpm, and yarn.',
+    code: 'npm install -g hivescan',
+    description: 'Install HiveScan globally. Works with npm, pnpm, and yarn.',
   },
   {
     n: '2',
-    title: 'Add a script',
-    code: '"hive": "hive"',
-    description: 'Add a script to your root package.json. Optionally create hive.config.js to define your agents.',
+    title: 'Scan',
+    code: 'hivescan --dir ~/Sites',
+    description: 'Point HiveScan at a directory of projects. It auto-discovers them and starts the dashboard.',
   },
   {
     n: '3',
-    title: 'Run',
-    code: 'npm run hive',
-    description: 'Open localhost:4199 and manage all your Claude Code agents from one browser tab.',
+    title: 'Manage',
+    code: 'http://localhost:4269',
+    description: 'Open the dashboard and manage all your Claude Code agents from one browser tab.',
   },
 ]
 

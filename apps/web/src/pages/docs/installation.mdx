@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Add HiveAgents to your monorepo in under a minute.
+description: Add HiveScan to your monorepo in under a minute.
 ---
 
 # Installation
@@ -15,44 +15,32 @@ description: Add HiveAgents to your monorepo in under a minute.
 
 ```bash
 # npm
-npm install -D hive-agents
+npm install -D hivescan
 
 # pnpm
-pnpm add -D hive-agents
+pnpm add -D hivescan
 
 # yarn
-yarn add -D hive-agents
-```
-
-## Add a script
-
-Add a `hive` script to the **root** `package.json` of your monorepo:
-
-```json
-{
-  "scripts": {
-    "hive": "hive"
-  }
-}
+yarn add -D hivescan
 ```
 
 ## Run it
 
 ```bash
-npm run hive
+npx hivescan
 ```
 
-HiveAgents will auto-discover `apps/*/` and `packages/*/` directories, start the server, and print:
+Or install globally and run:
 
-```
-  HiveAgents: auto-discovered 4 agent(s) from apps/ and packages/
-  Create hive.config.js to customize.
-
-  HiveAgents running at http://localhost:4199
+```bash
+npm install -g hivescan
+hivescan --dir ~/Sites
 ```
 
-Open [http://localhost:4199](http://localhost:4199) in your browser. You'll see your agents listed in the sidebar.
+HiveScan will auto-discover projects in the target directory, start the server, and open `http://localhost:4269` in your browser.
 
-## Next step
-
-Create a `hive.config.js` to customize which directories appear, their labels, colors, and port links — see [Configuration](/docs/configuration).
+```
+  Scanning: /Users/you/Sites
+  HiveScan running at http://localhost:4269
+  12 project(s) found, scanning ports every 5s...
+```

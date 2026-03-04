@@ -31,7 +31,7 @@ export default function HeroSection() {
         </h1>
 
         <p className="text-lg text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Drop HiveAgents into any monorepo. Get a real-time web dashboard for managing multiple{' '}
+          Drop HiveScan into any monorepo. Get a real-time web dashboard for managing multiple{' '}
           <a href="https://claude.ai/code" target="_blank" rel="noopener noreferrer" className="text-neutral-300 hover:text-white transition-colors">
             Claude Code
           </a>{' '}
@@ -41,7 +41,7 @@ export default function HeroSection() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 font-mono text-sm text-neutral-300">
             <span className="text-neutral-600">$</span>
-            npm install -D hive-agents
+            npx hivescan
           </div>
 
           <div className="flex items-center gap-3">
@@ -99,7 +99,7 @@ function TerminalMockup() {
             <path d="M2 17l10 5 10-5"/>
             <path d="M2 12l10 5 10-5"/>
           </svg>
-          <span className="text-xs font-semibold text-neutral-300">HiveAgents</span>
+          <span className="text-xs font-semibold text-neutral-300">HiveScan</span>
         </div>
         <div className="flex-1">
           {agents.map((a, i) => (

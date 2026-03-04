@@ -13,7 +13,7 @@ const features = [
     icon: RotateCcw,
     title: 'Session persistence',
     description:
-      'HiveAgents buffers terminal output to disk. Restart the server and your agents\' history is right where you left it.',
+      'HiveScan buffers terminal output to disk. Restart the server and your agents\' history is right where you left it.',
     color: 'var(--color-blue)',
     glow: 'var(--color-blue-glow)',
   },
@@ -50,7 +50,7 @@ export default function FeaturesSection() {
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-white mb-4">Everything you need</h2>
           <p className="text-neutral-400 max-w-lg mx-auto">
-            HiveAgents is purpose-built for Claude Code monorepo workflows. Small API surface, zero fluff.
+            HiveScan is purpose-built for Claude Code monorepo workflows. Small API surface, zero fluff.
           </p>
         </div>
 
