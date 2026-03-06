@@ -13,7 +13,7 @@ export default function DocsIndexPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold text-white mb-2">Documentation</h1>
-      <p className="text-neutral-400 mb-10">Everything you need to get HiveScan running.</p>
+      <p className="text-neutral-300 mb-10">Everything you need to get HiveScan running.</p>
 
       <div className="grid gap-3">
         {pages.map((p) => (
@@ -24,9 +24,9 @@ export default function DocsIndexPage() {
           >
             <div>
               <div className="font-medium text-white group-hover:text-brand transition-colors">{p.title}</div>
-              <div className="text-sm text-neutral-500 mt-0.5">{p.desc}</div>
+              <div className="text-sm text-neutral-400 mt-0.5">{p.desc}</div>
             </div>
-            <ArrowRight size={16} className="text-neutral-600 group-hover:text-brand transition-colors flex-shrink-0" />
+            <ArrowRight size={16} className="text-neutral-500 group-hover:text-brand transition-colors flex-shrink-0" />
           </Link>
         ))}
       </div>

@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 export default function Footer() {
   return (
     <footer className="border-t border-neutral-800/60 py-8 mt-24">
-      <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm text-neutral-500">
+      <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm text-neutral-400">
         <span>HiveScan — MIT License</span>
         <div className="flex items-center gap-6">
           <Link to="/docs" className="hover:text-neutral-300 transition-colors">Docs</Link>

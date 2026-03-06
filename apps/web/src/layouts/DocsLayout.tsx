@@ -23,7 +23,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   `block text-sm py-1 transition-colors ${
     isActive
       ? 'text-brand font-medium'
-      : 'text-neutral-400 hover:text-neutral-100'
+      : 'text-neutral-300 hover:text-neutral-100'
   }`
 
 export default function DocsLayout() {
@@ -33,7 +33,7 @@ export default function DocsLayout() {
       <aside className="w-52 flex-shrink-0 sticky top-20 self-start">
         {NAV.map((section) => (
           <div key={section.title} className="mb-8">
-            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-3">
+            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">
               {section.title}
             </p>
             <nav className="flex flex-col gap-0.5">

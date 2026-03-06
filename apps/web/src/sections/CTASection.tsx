@@ -9,7 +9,7 @@ export default function CTASection() {
         <h2 className="text-3xl font-bold text-white mb-4">
           Ready to wrangle your agents?
         </h2>
-        <p className="text-neutral-400 mb-10">
+        <p className="text-neutral-300 mb-10">
           Open source, MIT licensed. Contributions welcome.
         </p>
 

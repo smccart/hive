@@ -25,7 +25,7 @@ export default function HowItWorksSection() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-white mb-4">Up in three steps</h2>
-          <p className="text-neutral-400">Drop it in, run it, done.</p>
+          <p className="text-neutral-300">Drop it in, run it, done.</p>
         </div>
 
         <div className="grid sm:grid-cols-3 gap-8">
@@ -41,7 +41,7 @@ export default function HowItWorksSection() {
               <pre className="text-left text-xs bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2.5 font-mono text-neutral-300 mb-3 overflow-x-auto">
                 {step.code}
               </pre>
-              <p className="text-sm text-neutral-400">{step.description}</p>
+              <p className="text-sm text-neutral-300">{step.description}</p>
             </div>
           ))}
         </div>

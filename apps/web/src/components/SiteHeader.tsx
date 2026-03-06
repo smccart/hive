@@ -2,7 +2,7 @@ import { Link, NavLink } from 'react-router'
 import GitHubIcon from './GitHubIcon'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `text-sm transition-colors ${isActive ? 'text-white' : 'text-neutral-400 hover:text-white'}`
+  `text-sm transition-colors ${isActive ? 'text-white' : 'text-neutral-300 hover:text-white'}`
 
 export default function SiteHeader() {
   return (
@@ -19,7 +19,7 @@ export default function SiteHeader() {
             href="https://github.com/smccart/hive"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-neutral-400 hover:text-white transition-colors"
+            className="text-neutral-300 hover:text-white transition-colors"
             aria-label="GitHub"
           >
             <GitHubIcon size={18} />

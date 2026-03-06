@@ -20,7 +20,7 @@ export default function HeroSection() {
       />
 
       <div className="relative max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 text-xs text-neutral-400 border border-neutral-800 rounded-full px-3 py-1.5 mb-8">
+        <div className="inline-flex items-center gap-2 text-xs text-neutral-300 border border-neutral-800 rounded-full px-3 py-1.5 mb-8">
           <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
           Open source · MIT License
         </div>
@@ -30,7 +30,7 @@ export default function HeroSection() {
           <span style={{ background: 'linear-gradient(90deg, var(--color-brand), var(--color-blue))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>One tab.</span>
         </h1>
 
-        <p className="text-lg text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-lg text-neutral-300 max-w-2xl mx-auto mb-10 leading-relaxed">
           Drop HiveScan into any monorepo. Get a real-time web dashboard for managing multiple{' '}
           <a href="https://claude.ai/code" target="_blank" rel="noopener noreferrer" className="text-neutral-300 hover:text-white transition-colors">
             Claude Code
@@ -40,7 +40,7 @@ export default function HeroSection() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 font-mono text-sm text-neutral-300">
-            <span className="text-neutral-600">$</span>
+            <span className="text-neutral-500">$</span>
             npx hivescan
           </div>
 
@@ -56,7 +56,7 @@ export default function HeroSection() {
               href="https://github.com/smccart/hive"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-neutral-300 hover:text-white transition-colors"
             >
               <GitHubIcon size={14} />
               GitHub
@@ -72,7 +72,7 @@ export default function HeroSection() {
             <span className="w-3 h-3 rounded-full bg-neutral-700" />
             <span className="w-3 h-3 rounded-full bg-neutral-700" />
             <span className="w-3 h-3 rounded-full bg-neutral-700" />
-            <span className="ml-3 text-xs text-neutral-500 font-mono">localhost:4199</span>
+            <span className="ml-3 text-xs text-neutral-400 font-mono">localhost:4199</span>
           </div>
           <TerminalMockup />
         </div>
@@ -112,7 +112,7 @@ function TerminalMockup() {
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ background: a.running ? a.color : '#3f3f46' }}
               />
-              <span className={i === 0 ? 'text-white' : 'text-neutral-400'}>{a.name}</span>
+              <span className={i === 0 ? 'text-white' : 'text-neutral-300'}>{a.name}</span>
               {a.active && (
                 <span className="ml-auto text-[10px]" style={{ color: a.color }}>●</span>
               )}
@@ -121,7 +121,7 @@ function TerminalMockup() {
         </div>
         {/* Sidebar footer */}
         <div className="px-3 pt-2 mt-auto border-t border-[#1e1e1e] flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] text-neutral-500 px-1 py-1 rounded" style={{ background: '#161616', border: '1px solid #1e1e1e' }}>
+          <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 px-1 py-1 rounded" style={{ background: '#161616', border: '1px solid #1e1e1e' }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
@@ -132,25 +132,25 @@ function TerminalMockup() {
       </div>
 
       {/* Terminal area */}
-      <div className="flex-1 p-4 font-mono text-xs text-neutral-400 overflow-hidden">
+      <div className="flex-1 p-4 font-mono text-xs text-neutral-300 overflow-hidden">
         <div className="text-[#4ade80] mb-1">✓ Task complete: added dark mode toggle</div>
-        <div className="text-neutral-500 mb-1">Reading src/components/Header.tsx...</div>
+        <div className="text-neutral-400 mb-1">Reading src/components/Header.tsx...</div>
         <div className="text-neutral-300 mb-1">
           {'> '}I'll add the toggle to the header. Let me check the theme config first.
         </div>
-        <div className="text-neutral-500 mb-1">Reading src/theme/index.ts...</div>
+        <div className="text-neutral-400 mb-1">Reading src/theme/index.ts...</div>
         <div className="text-neutral-300 mb-1">
           {'> '}Found ThemeProvider. Adding a Sun/Moon button that toggles the dark class.
         </div>
-        <div className="text-neutral-500 mb-1">Writing src/components/Header.tsx...</div>
+        <div className="text-neutral-400 mb-1">Writing src/components/Header.tsx...</div>
         <div className="text-[#4ade80] mb-1">✓ Dark mode toggle added successfully</div>
-        <div className="text-neutral-600 mb-4">
-          Run <span className="text-neutral-400">npm run dev</span> to preview the changes.
+        <div className="text-neutral-500 mb-4">
+          Run <span className="text-neutral-300">npm run dev</span> to preview the changes.
         </div>
         <div className="flex items-center gap-1">
           <span className="text-[#4ade80]">◆</span>
           <span className="text-white">claude</span>
-          <span className="text-neutral-600">web ›</span>
+          <span className="text-neutral-500">web ›</span>
           <span className="w-2 h-4 bg-neutral-300 animate-pulse ml-1 inline-block" />
         </div>
       </div>

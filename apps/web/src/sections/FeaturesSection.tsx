@@ -49,7 +49,7 @@ export default function FeaturesSection() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-white mb-4">Everything you need</h2>
-          <p className="text-neutral-400 max-w-lg mx-auto">
+          <p className="text-neutral-300 max-w-lg mx-auto">
             HiveScan is purpose-built for Claude Code monorepo workflows. Small API surface, zero fluff.
           </p>
         </div>
@@ -67,7 +67,7 @@ export default function FeaturesSection() {
                 <f.icon size={18} />
               </div>
               <h3 className="font-semibold text-white mb-2">{f.title}</h3>
-              <p className="text-sm text-neutral-400 leading-relaxed">{f.description}</p>
+              <p className="text-sm text-neutral-300 leading-relaxed">{f.description}</p>
             </div>
           ))}
         </div>

@@ -12,7 +12,7 @@ const Usage            = lazy(() => import('@/pages/docs/usage.mdx'))
 const ApiReference     = lazy(() => import('@/pages/docs/api-reference.mdx'))
 
 function DocPage({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<div className="p-8 text-neutral-500">Loading...</div>}>{children}</Suspense>
+  return <Suspense fallback={<div className="p-8 text-neutral-400">Loading...</div>}>{children}</Suspense>
 }
 
 export default function App() {
