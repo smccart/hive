@@ -5,60 +5,100 @@ description: REST endpoints and WebSocket protocol.
 
 # API Reference
 
-HiveScan exposes a simple REST API and a WebSocket endpoint. These are useful if you want to integrate HiveScan into other tools, build custom UIs, or script agent control.
+HiveScan exposes a simple REST API and WebSocket endpoints. These are useful if you want to integrate HiveScan into other tools, build custom UIs, or script agent control.
 
 ## REST API
 
-All endpoints are served on the same port as the web UI (default `4199`).
+All endpoints are served on the same port as the web UI (default `4269`).
 
-### GET /api/agents
+### GET /api/info
 
-Returns the list of configured agents and their current status.
+Returns basic server info.
 
 **Response:**
 
 ```json
 {
-  "agents": {
-    "web": {
-      "dir": "/absolute/path/to/apps/web",
-      "port": 3000,
-      "label": "Web App",
-      "color": "#4ade80",
-      "running": true,
-      "active": false
-    },
-    "api": { ... }
-  },
-  "order": ["web", "api", "admin"]
+  "mode": "central",
+  "port": 4269,
+  "projectCount": 4
 }
 ```
 
-`order` contains agent names in the order they should be displayed.
+---
 
-`running` — whether the Claude process is currently alive.
-`active` — whether output has been received in the last 1.5 seconds.
+### GET /api/projects
+
+Returns all discovered projects and their current status.
+
+**Response:**
+
+```json
+{
+  "projects": [
+    {
+      "id": "users-you-sites-myapp-apps-web",
+      "name": "web",
+      "root": "/Users/you/Sites/myapp/apps/web",
+      "ports": [5173],
+      "color": "#4ade80",
+      "group": "myapp",
+      "groupId": "users-you-sites-myapp",
+      "running": true,
+      "active": false,
+      "waiting": false
+    }
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `running` | Whether the Claude process is currently alive |
+| `active` | Whether output has been received in the last 1.5 seconds |
+| `waiting` | Whether Claude is waiting for user input (permission prompt, y/n, etc.) |
+| `group` | Parent monorepo name, if this is a workspace child |
 
 ---
 
-### POST /api/agents/:name/start
+### POST /api/projects/scan
 
-Starts the agent with the given name. No-op if already running.
+Triggers a re-scan of the filesystem for new projects.
+
+**Response:** Same as `GET /api/projects`.
+
+---
+
+### POST /api/projects/:id/start
+
+Starts the Claude agent for the given project. No-op if already running.
 
 ```bash
-curl -X POST http://localhost:4199/api/agents/web/start
+curl -X POST http://localhost:4269/api/projects/users-you-sites-myapp-apps-web/start
 ```
 
 **Response:** `{ "ok": true }`
 
 ---
 
-### POST /api/agents/:name/stop
+### POST /api/projects/:id/stop
 
-Stops the agent with the given name. No-op if not running.
+Stops the Claude agent for the given project. No-op if not running.
 
 ```bash
-curl -X POST http://localhost:4199/api/agents/web/stop
+curl -X POST http://localhost:4269/api/projects/users-you-sites-myapp-apps-web/stop
+```
+
+**Response:** `{ "ok": true }`
+
+---
+
+### POST /api/projects/:id/restart
+
+Stops the agent, clears its terminal buffer, and restarts it.
+
+```bash
+curl -X POST http://localhost:4269/api/projects/users-you-sites-myapp-apps-web/restart
 ```
 
 **Response:** `{ "ok": true }`
@@ -73,7 +113,7 @@ Returns the current model and list of available models.
 
 ```json
 {
-  "model": "claude-opus-4-6",
+  "model": "claude-sonnet-4-6",
   "models": [
     { "id": "claude-opus-4-6",           "label": "Opus 4.6" },
     { "id": "claude-sonnet-4-6",         "label": "Sonnet 4.6" },
@@ -86,21 +126,25 @@ Returns the current model and list of available models.
 
 ### POST /api/model
 
-Sets the model used for newly spawned agents.
+Sets the model used for newly spawned agents. Does not affect already-running agents.
 
 ```bash
-curl -X POST http://localhost:4199/api/model \
+curl -X POST http://localhost:4269/api/model \
   -H 'Content-Type: application/json' \
-  -d '{"model":"claude-sonnet-4-6"}'
+  -d '{"model":"claude-opus-4-6"}'
 ```
 
 **Response:** `{ "ok": true }`
 
 ---
 
-### GET /api/permissions
+### GET /api/projects/:id/permissions
 
-Returns the current Claude Code permissions from `.claude/settings.json`. If the file doesn't exist, returns defaults.
+Returns the Claude Code permissions from the project's `.claude/settings.json`. If the file doesn't exist, returns defaults.
+
+```bash
+curl http://localhost:4269/api/projects/users-you-sites-myapp-apps-web/permissions
+```
 
 **Response:**
 
@@ -123,12 +167,12 @@ Returns the current Claude Code permissions from `.claude/settings.json`. If the
 
 ---
 
-### POST /api/permissions
+### PUT /api/projects/:id/permissions
 
-Writes updated permission settings to `.claude/settings.json`. Creates the `.claude/` directory if it doesn't exist.
+Writes updated permission settings to the project's `.claude/settings.json`. Creates the `.claude/` directory if it doesn't exist.
 
 ```bash
-curl -X POST http://localhost:4199/api/permissions \
+curl -X PUT http://localhost:4269/api/projects/users-you-sites-myapp-apps-web/permissions \
   -H 'Content-Type: application/json' \
   -d '{
     "defaultMode": "acceptEdits",
@@ -145,38 +189,59 @@ curl -X POST http://localhost:4199/api/permissions \
 
 ## WebSocket
 
-Connect to `/ws?agent=<name>` to stream terminal I/O for a specific agent.
+HiveScan uses two WebSocket channels:
+
+### Control channel: /ws/control
+
+Receives broadcasts whenever the project list changes (new projects discovered, ports updated, agent status changes).
 
 ```js
-const ws = new WebSocket('ws://localhost:4199/ws?agent=web')
+const ws = new WebSocket('ws://localhost:4269/ws/control')
+
+ws.onmessage = (e) => {
+  const msg = JSON.parse(e.data)
+  if (msg.type === 'projects:changed') {
+    console.log(msg.projects)    // full project list
+    console.log(msg.detectedPorts) // all detected listening ports
+  }
+}
 ```
 
-### Parameters
+### Terminal channel: /ws?project=&lt;id&gt;
+
+Streams terminal I/O for a specific project's Claude agent.
+
+```js
+const ws = new WebSocket('ws://localhost:4269/ws?project=users-you-sites-myapp-apps-web')
+```
+
+#### Parameters
 
 | Param | Description |
 |-------|-------------|
-| `agent` | Agent name (required) |
+| `project` | Project ID (required) |
 | `skipBuffer` | If `true`, don't replay buffered history on connect |
 
-### Messages from server → client
+#### Messages from server
 
 | Type | Payload | Description |
 |------|---------|-------------|
 | `output` | `{ data: string }` | Terminal output chunk (ANSI escape sequences included) |
 | `status` | `{ running: boolean, exitCode?: number }` | Agent start/stop events |
-| `activity` | `{ active: boolean }` | Output flow changed (true = data arriving, false = idle) |
+| `activity` | `{ active: boolean, waiting: boolean }` | Output flow changed (active = data arriving, waiting = needs user input) |
 
-### Messages from client → server
+#### Messages from client
 
 | Type | Payload | Description |
 |------|---------|-------------|
 | `input` | `{ data: string }` | Keyboard input to send to the PTY |
 | `resize` | `{ cols: number, rows: number }` | Notify the PTY of a terminal size change |
+| `clear` | `{}` | Clear the terminal buffer |
 
-### Example
+#### Example
 
 ```js
-const ws = new WebSocket('ws://localhost:4199/ws?agent=web')
+const ws = new WebSocket('ws://localhost:4269/ws?project=users-you-sites-myapp-apps-web')
 
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data)
@@ -187,4 +252,7 @@ ws.onmessage = (e) => {
 
 // Send a command
 ws.send(JSON.stringify({ type: 'input', data: 'ls -la\n' }))
+
+// Clear buffer
+ws.send(JSON.stringify({ type: 'clear' }))
 ```

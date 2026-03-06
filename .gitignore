@@ -10,3 +10,4 @@ dist/
 # TypeScript build artifacts
 *.tsbuildinfo
 *.d.ts.map
+.vercel

@@ -4,7 +4,7 @@ import { spawn } from 'node-pty'
 import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { execFileSync, exec } from 'node:child_process'
+import { execFileSync, execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs'
 import { ProjectWatcher } from './scanner.js'
 
@@ -183,7 +183,19 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
   }
 
   function buildSpawnEnv() {
-    const env = { ...process.env }
+    // Whitelist safe env vars instead of forwarding everything
+    const SAFE_ENV_KEYS = [
+      'HOME', 'USER', 'LOGNAME', 'SHELL', 'LANG', 'LC_ALL', 'LC_CTYPE',
+      'TERM', 'TERM_PROGRAM', 'COLORTERM',
+      'PATH', 'TMPDIR', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME',
+      'NODE_ENV', 'EDITOR', 'VISUAL',
+      // Claude-specific
+      'ANTHROPIC_API_KEY', 'CLAUDE_CODE_ENTRYPOINT',
+    ]
+    const env = {}
+    for (const key of SAFE_ENV_KEYS) {
+      if (process.env[key] !== undefined) env[key] = process.env[key]
+    }
     const home = env.HOME || ''
     const localBin = `${home}/.local/bin`
     const basePath = SHELL_PATH || env.PATH || ''
@@ -191,7 +203,6 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
       ? basePath
       : `${localBin}:${basePath}`
     env.CLAUDE_CODE_ENTRYPOINT = 'cli'
-    delete env.VSCODE_IPC_HOOK
     return env
   }
 
@@ -295,7 +306,9 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
   const app = express()
 
   app.use((_req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*')
+    const origin = _req.headers.origin || ''
+    const allowed = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    res.setHeader('Access-Control-Allow-Origin', allowed ? origin : `http://localhost:${port}`)
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
     if (_req.method === 'OPTIONS') return res.sendStatus(204)
@@ -380,6 +393,8 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
     }
   })
 
+  const VALID_MODES = ['default', 'acceptEdits', 'plan', 'dontAsk', 'bypassPermissions']
+
   app.put('/api/projects/:id/permissions', (req, res) => {
     const session = resolveProject(req, res)
     if (!session) return
@@ -389,6 +404,16 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
       const { defaultMode, permissions } = req.body
       if (!defaultMode || !permissions) {
         return res.status(400).json({ error: 'Invalid payload' })
+      }
+      if (!VALID_MODES.includes(defaultMode)) {
+        return res.status(400).json({ error: `Invalid mode. Must be one of: ${VALID_MODES.join(', ')}` })
+      }
+      if (!Array.isArray(permissions.allow) || !Array.isArray(permissions.deny)) {
+        return res.status(400).json({ error: 'permissions.allow and permissions.deny must be arrays' })
+      }
+      const allRules = [...permissions.allow, ...permissions.deny]
+      if (allRules.some(r => typeof r !== 'string' || r.length > 200)) {
+        return res.status(400).json({ error: 'Each rule must be a string under 200 characters' })
       }
       mkdirSync(settingsDir, { recursive: true })
       writeFileSync(settingsPath, JSON.stringify({ defaultMode, permissions }, null, 2) + '\n', 'utf8')
@@ -463,7 +488,7 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
     if (!noOpen) {
       const url = `http://localhost:${port}`
       const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
-      exec(`${cmd} ${url}`)
+      execFile(cmd, [url], () => {})
     }
   })
 

@@ -4,7 +4,7 @@ import { readFileSync, mkdirSync, existsSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { join, resolve, dirname } from 'node:path'
 import { homedir } from 'node:os'
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 
 // ── CLI flags ───────────────────────────────────────────────────────────────
 
@@ -129,7 +129,7 @@ async function isHiveRunning(p) {
 
 function openBrowser(url) {
   const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
-  exec(`${cmd} ${url}`)
+  execFile(cmd, [url], () => {})
 }
 
 // ── Directory helpers ─────────────────────────────────────────────────────────

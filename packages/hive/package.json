@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Web-based terminal dashboard for managing Claude Code agents in a monorepo",
   "type": "module",
+  "main": "src/server.js",
   "bin": {
     "hivescan": "src/cli.js"
   },
