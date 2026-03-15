@@ -521,8 +521,7 @@ html, body {
 #agent-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 18px 0 0;
   height: 46px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
@@ -530,11 +529,22 @@ html, body {
   gap: 12px;
 }
 
+#agent-header #tier1-tabs {
+  flex: 1;
+  height: 100%;
+  padding: 0 8px;
+  background: transparent;
+  border-bottom: none;
+  overflow-x: auto;
+}
+
 #header-identity {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 #header-color-bar {
@@ -682,12 +692,17 @@ html, body {
 .tab-tier::-webkit-scrollbar { display: none; }
 .tab-tier:empty { display: none; }
 
-/* Tier 1: Project/monorepo root tabs - most prominent */
+/* Tier 1: Project/monorepo root tabs — lives inside #agent-header */
 .tier-project {
   height: 36px;
   padding: 0 8px;
   background: var(--sidebar-bg);
   border-bottom: 1px solid var(--border);
+}
+#agent-header .tier-project {
+  height: 100%;
+  background: transparent;
+  border-bottom: none;
 }
 
 /* Tier 2: Package tabs (monorepo) or agent tabs (standalone) */

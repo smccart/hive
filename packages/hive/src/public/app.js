@@ -459,11 +459,11 @@ function renderTabs() {
 
 function renderTier1Tabs() {
   tier1El.innerHTML = ''
-  // Show top-level projects/monorepo roots with running agents
+  // Only show top-level projects/monorepo roots that have at least one running agent
   for (const id of projectOrder) {
     const p = projects[id]
     if (!p || p.groupId) continue  // skip monorepo children
-    if (!hasRunningAgent(id)) continue
+    if (!hasRunningAgent(id)) continue  // only show if agent is running
     tier1El.appendChild(buildProjectTab(p))
   }
 }
@@ -529,6 +529,7 @@ function buildProjectTab(p) {
 
   const topId = projects[activeProject]?.groupId || activeProject
   if (p.id === topId) tab.classList.add('active')
+
   if (hasRunningAgent(p.id)) tab.classList.add('running')
   if (hasWaitingAgent(p.id)) tab.classList.add('waiting')
 
