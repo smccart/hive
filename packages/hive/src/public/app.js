@@ -876,16 +876,7 @@ function updateSidebarItem(id) {
 function selectTier1(projectId) {
   const p = projects[projectId]
   if (!p) return
-  const isMonorepo = projectOrder.some(id => projects[id]?.groupId === projectId)
-
-  if (isMonorepo) {
-    // Select first child package
-    const firstChild = projectOrder.find(id => projects[id]?.groupId === projectId)
-    if (firstChild) selectProject(firstChild)
-    else selectProject(projectId)
-  } else {
-    selectProject(projectId)
-  }
+  selectProject(projectId)
 }
 
 function selectProject(id) {
