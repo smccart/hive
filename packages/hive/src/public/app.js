@@ -459,12 +459,17 @@ function renderTabs() {
 
 function renderTier1Tabs() {
   tier1El.innerHTML = ''
-  // Only show top-level projects/monorepo roots that have at least one running agent
-  for (const id of projectOrder) {
+  const visibleIds = projectOrder.filter(id => {
     const p = projects[id]
-    if (!p || p.groupId) continue  // skip monorepo children
-    if (!hasRunningAgent(id)) continue  // only show if agent is running
-    tier1El.appendChild(buildProjectTab(p))
+    return p && !p.groupId && hasRunningAgent(id)
+  })
+  if (visibleIds.length <= 1) {
+    tier1El.classList.add('hidden')
+    return
+  }
+  tier1El.classList.remove('hidden')
+  for (const id of visibleIds) {
+    tier1El.appendChild(buildProjectTab(projects[id]))
   }
 }
 
@@ -489,9 +494,16 @@ function renderTier2Tabs() {
       const tab = buildPackageTab(child)
       tier2El.appendChild(tab)
     }
+    tier2El.classList.remove('hidden')
   } else {
-    // Standalone project: tier 2 is agent instances
+    // Standalone project: tier 2 is agent instances — hide if only 1 agent
     renderAgentInstanceTabs(tier2El, topId)
+    const agentTabs = tier2El.querySelectorAll('.agent-instance-tab')
+    if (agentTabs.length <= 1) {
+      tier2El.classList.add('hidden')
+    } else {
+      tier2El.classList.remove('hidden')
+    }
   }
 }
 
@@ -699,9 +711,12 @@ function renderSidebar() {
   for (const { parent, children } of visibleGroups) {
     agentListEl.appendChild(buildGroupHeader(parent, children))
     if (parent && !collapsedGroups.has(parent.id)) {
+      const childrenEl = document.createElement('div')
+      childrenEl.className = 'group-children'
       for (const child of children) {
-        agentListEl.appendChild(buildProjectItem(child, true, false))
+        childrenEl.appendChild(buildProjectItem(child, true, false))
       }
+      agentListEl.appendChild(childrenEl)
     }
   }
 
@@ -720,9 +735,12 @@ function renderSidebar() {
     for (const { parent, children } of hiddenGroupsList) {
       agentListEl.appendChild(buildGroupHeader(parent, children, true))
       if (parent && !collapsedGroups.has(parent.id)) {
+        const childrenEl = document.createElement('div')
+        childrenEl.className = 'group-children'
         for (const child of children) {
-          agentListEl.appendChild(buildProjectItem(child, true, true))
+          childrenEl.appendChild(buildProjectItem(child, true, true))
         }
+        agentListEl.appendChild(childrenEl)
       }
     }
     for (const p of hiddenStandalone) {
@@ -730,56 +748,6 @@ function renderSidebar() {
     }
   }
 
-  // Render running ports section (collapsed by default, at bottom)
-  if (allDetectedPorts.length > 0) {
-    const portsCollapsed = collapsedGroups.has('__ports__')
-
-    const portsHeader = document.createElement('div')
-    portsHeader.className = 'sidebar-section-label ports-section-header'
-    if (portsCollapsed) portsHeader.classList.add('collapsed')
-
-    const chevron = document.createElement('span')
-    chevron.className = 'group-chevron'
-    chevron.innerHTML = '&#x25BE;'
-
-    const labelText = document.createElement('span')
-    labelText.textContent = `Ports (${allDetectedPorts.length})`
-
-    portsHeader.append(chevron, labelText)
-    portsHeader.addEventListener('click', () => {
-      if (collapsedGroups.has('__ports__')) {
-        collapsedGroups.delete('__ports__')
-      } else {
-        collapsedGroups.add('__ports__')
-      }
-      saveCollapsed()
-      renderSidebar()
-    })
-    agentListEl.appendChild(portsHeader)
-
-    if (!portsCollapsed) {
-      for (const { port, process: proc } of allDetectedPorts) {
-        const item = document.createElement('div')
-        item.className = 'port-item'
-        item.addEventListener('click', () => {
-          previewOpen = true
-          previewPort = port
-          updatePreviewContent()
-        })
-
-        const portNum = document.createElement('span')
-        portNum.className = 'port-number'
-        portNum.textContent = `:${port}`
-
-        const procName = document.createElement('span')
-        procName.className = 'port-process'
-        procName.textContent = proc
-
-        item.append(portNum, procName)
-        agentListEl.appendChild(item)
-      }
-    }
-  }
 }
 
 function buildGroupHeader(parent, children, isHidden) {
@@ -791,13 +759,16 @@ function buildGroupHeader(parent, children, isHidden) {
     header.dataset.id = parent.id
     header.style.setProperty('--agent-color', parent.color)
 
+    const chevron = document.createElement('span')
+    chevron.className = 'group-chevron'
+
     const name = document.createElement('span')
     name.className = 'group-name'
     name.textContent = parent.name
 
     const eye = buildVisibilityToggle(parent.id)
 
-    header.append(name, eye)
+    header.append(chevron, name, eye)
     header.addEventListener('click', () => {
       selectTier1(parent.id)
       if (collapsedGroups.has(parent.id)) {

@@ -133,18 +133,38 @@ html, body {
   user-select: none;
 }
 
-.group-header:not(:first-child) {
+.group-header:not(:first-child),
+.group-children + .agent-item:not(.child) {
   margin-top: 6px;
   border-top: 1px solid var(--border);
+}
+
+.group-header:not(:first-child) {
   padding-top: 12px;
 }
 
 .group-chevron {
-  font-size: 10px;
-  color: var(--muted);
   flex-shrink: 0;
-  line-height: 1;
+  width: 10px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
   transition: transform 0.15s;
+}
+.group-chevron::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  transition: transform 0.15s;
+}
+.group-header:not(.collapsed) .group-chevron::before {
+  transform: rotate(90deg);
 }
 
 .group-name {
@@ -160,8 +180,39 @@ html, body {
 
 .group-header:hover .group-name { color: var(--text); }
 
+.group-children {
+  position: relative;
+  padding-bottom: 2px;
+}
+
 .agent-item.child {
-  padding-left: 14px;
+  padding-left: 36px;
+  position: relative;
+}
+/* Vertical segment — full height for ├─, half height for └─ */
+.agent-item.child::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  opacity: 0.6;
+}
+.agent-item.child:last-child::before {
+  bottom: 50%;
+}
+/* Horizontal branch */
+.agent-item.child::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.6;
 }
 
 #agent-list::-webkit-scrollbar { width: 4px; }
@@ -521,21 +572,12 @@ html, body {
 #agent-header {
   display: flex;
   align-items: center;
-  padding: 0 18px 0 0;
+  padding: 0 18px;
   height: 46px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   background: var(--sidebar-bg);
   gap: 12px;
-}
-
-#agent-header #tier1-tabs {
-  flex: 1;
-  height: 100%;
-  padding: 0 8px;
-  background: transparent;
-  border-bottom: none;
-  overflow-x: auto;
 }
 
 #header-identity {
@@ -544,7 +586,6 @@ html, body {
   gap: 10px;
   min-width: 0;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 #header-color-bar {
@@ -692,18 +733,15 @@ html, body {
 .tab-tier::-webkit-scrollbar { display: none; }
 .tab-tier:empty { display: none; }
 
-/* Tier 1: Project/monorepo root tabs — lives inside #agent-header */
+/* Tier 1: Project/monorepo root tabs */
 .tier-project {
   height: 36px;
   padding: 0 8px;
   background: var(--sidebar-bg);
   border-bottom: 1px solid var(--border);
 }
-#agent-header .tier-project {
-  height: 100%;
-  background: transparent;
-  border-bottom: none;
-}
+
+.tab-tier.hidden { display: none; }
 
 /* Tier 2: Package tabs (monorepo) or agent tabs (standalone) */
 .tier-package {

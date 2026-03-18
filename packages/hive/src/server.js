@@ -4,7 +4,7 @@ import { spawn } from 'node-pty'
 import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { execFileSync, execFile } from 'node:child_process'
+import { execFileSync, execFile, spawn as spawnProcess } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync, renameSync } from 'node:fs'
 import { ProjectWatcher } from './scanner.js'
 
@@ -249,6 +249,40 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
     return env
   }
 
+  function maybeStartDevServer(projectId) {
+    const project = projectRegistry[projectId]
+    if (!project) return
+    if (project.ports.length > 0) return
+    if (project.devProcess) return
+
+    const pkgPath = join(project.root, 'package.json')
+    if (!existsSync(pkgPath)) return
+    let pkg
+    try { pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) } catch { return }
+
+    const scripts = pkg.scripts || {}
+    if (!scripts.dev) return
+
+    const shell = process.env.SHELL || '/bin/zsh'
+    const proc = spawnProcess(shell, ['-l', '-c', 'npm run dev'], {
+      cwd: project.root,
+      stdio: 'ignore',
+      detached: false,
+    })
+
+    project.devProcess = proc
+    console.log(`[${project.name}] starting dev server`)
+
+    proc.on('error', (err) => {
+      console.error(`[${project.name}] dev server error: ${err.message}`)
+      project.devProcess = null
+    })
+    proc.on('exit', (code) => {
+      console.log(`[${project.name}] dev server exited (code ${code})`)
+      project.devProcess = null
+    })
+  }
+
   function spawnAgentPty(sessionId) {
     const agent = agents[sessionId]
     if (!agent || agent.pty) return
@@ -398,6 +432,7 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
   app.post('/api/projects/:id/agents', (req, res) => {
     const project = resolveProject(req, res)
     if (!project) return
+    maybeStartDevServer(project.id)
     const idx = nextInstanceIdx(project.id)
     const agent = createAgentSession(project.id, idx)
     spawnAgentPty(agent.sessionId)
@@ -408,6 +443,7 @@ export function startServer({ port, pollInterval, scanDirs, dataDir, noOpen }) {
   app.post('/api/projects/:id/start', (req, res) => {
     const project = resolveProject(req, res)
     if (!project) return
+    maybeStartDevServer(project.id)
     const sessionId = `${project.id}:0`
     if (!agents[sessionId]) createAgentSession(project.id, 0)
     spawnAgentPty(sessionId)
